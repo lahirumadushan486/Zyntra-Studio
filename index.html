@@ -10,6 +10,7 @@
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://www.zyntrastudio.lk/">
 <link rel="canonical" href="https://www.zyntrastudio.lk/">
+<link rel="icon" id="brand-favicon" href="data:,">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
@@ -47,7 +48,13 @@
 <!-- Header / Navigation -->
 <header class="site-header" id="site-header">
   <div class="header-inner">
-    <a href="index.html#home" class="wordmark" data-nav>Zyntra<span>Studio</span></a>
+    <a href="index.html#home" class="brand-lockup brand-lockup--header" data-brand-logo data-nav aria-label="Zyntra Studio — Home">
+      <span class="brand-logo-box">
+        <img class="brand-logo-image" alt="Zyntra Studio logo" width="32" height="32" loading="eager" hidden>
+        <span class="brand-logo-fallback" aria-hidden="true">ZS</span>
+      </span>
+      <span class="brand-name"><span class="brand-name__primary">Zyntra</span><span class="brand-name__accent">Studio</span></span>
+    </a>
 
     <nav class="main-nav" id="main-nav" aria-label="Primary">
       <ul class="nav-list">
@@ -180,7 +187,7 @@
     <div class="section-inner shoot-grid">
       <div class="shoot-media reveal">
         <!-- Replace with images/mobile-shooting.jpg: phone on DJI-style gimbal shooting a product/business scene -->
-        <img src="https://images.unsplash.com/photo-1601506521793-dc748fc80b67?q=80&w=1100&auto=format&fit=crop" alt="Smartphone mounted on a mobile gimbal filming a business product on location" loading="lazy">
+        <img src="https://res.cloudinary.com/tqdnopaj/image/upload/v1788956617/Iphone_Filmmaking.jpg" alt="Smartphone mounted on a mobile gimbal filming a business product on location" loading="lazy">
       </div>
       <div class="shoot-copy reveal">
         <p class="eyebrow">On location</p>
@@ -240,7 +247,13 @@
         <div class="personal-portfolio-card__content">
           <div class="personal-portfolio-card__meta">
             <p class="personal-portfolio-card__eyebrow">Creative Professional</p>
-            <p class="personal-portfolio-card__brand">Zyntra Studio</p>
+            <span class="personal-portfolio-card__brand brand-lockup brand-lockup--compact" data-brand-logo>
+              <span class="brand-logo-box">
+                <img class="brand-logo-image" alt="Zyntra Studio logo" width="20" height="20" loading="lazy" hidden>
+                <span class="brand-logo-fallback" aria-hidden="true">ZS</span>
+              </span>
+              <span class="brand-name"><span class="brand-name__primary">Zyntra</span><span class="brand-name__accent">Studio</span></span>
+            </span>
           </div>
 
           <h2 class="personal-portfolio-card__name" id="personal-portfolio-card-name">Lahiru Madushan</h2>
@@ -401,10 +414,10 @@
       <div class="package-grid">
         <article class="package-card reveal">
           <h3>Starter Trial</h3>
-          <p class="price">Rs. 6,000<span>/month</span></p>
+          <p class="price">Rs. 8,000<span>/month</span></p>
           <ul>
-            <li>6 static social media posts</li>
-            <li>1 short video</li>
+            <li>5 static social media posts</li>
+            <li>2 short video</li>
             <li>Captions and hashtags</li>
             <li>Monthly report</li>
             <li>Maximum trial period of 2 months</li>
@@ -415,14 +428,14 @@
         <article class="package-card is-popular reveal">
           <span class="popular-badge">Popular</span>
           <h3>Budget Monthly</h3>
-          <p class="price">Rs. 12,000<span>/month</span></p>
+          <p class="price">Rs. 18,000<span>/month</span></p>
           <ul>
             <li>10 static social media posts</li>
             <li>2 short videos</li>
             <li>Captions and hashtags</li>
             <li>Monthly content planning</li>
             <li>Monthly performance summary</li>
-            <li>Reasonable revisions</li>
+            <li>Reasonable 2 revisions per video</li>
           </ul>
           <button class="btn btn-primary pkg-whatsapp" data-package="Budget Monthly">Choose Budget Monthly</button>
         </article>
@@ -451,10 +464,10 @@
       <div class="package-grid package-grid-full">
         <article class="package-card reveal">
           <h3>Monthly Video Editing</h3>
-          <p class="price">Rs. 12,000<span>/month</span></p>
+          <p class="price">Rs. 15,000<span>/month</span></p>
           <ul>
             <li>6 edited videos</li>
-            <li>Duration approx. 1–2.5 minutes</li>
+            <li>Duration approx. 1-1.50 minutes</li>
             <li>Client-provided footage</li>
             <li>Music and sound effects</li>
             <li>Basic captions</li>
@@ -471,7 +484,7 @@
           <ul>
             <li>Video up to 45 seconds</li>
             <li>AI and stock footage combination</li>
-            <li>Script and voice-over</li>
+            <li>Script and voice over</li>
             <li>Music and sound effects</li>
             <li>Captions, logo and contact details</li>
             <li>Full HD vertical format</li>
@@ -852,7 +865,13 @@
 <footer class="site-footer">
   <div class="section-inner footer-grid">
     <div class="footer-brand">
-      <a href="#home" class="wordmark wordmark-light" data-nav>Zyntra<span>Studio</span></a>
+      <a href="#home" class="brand-lockup brand-lockup--footer" data-brand-logo data-nav aria-label="Zyntra Studio — Home">
+        <span class="brand-logo-box">
+          <img class="brand-logo-image" alt="Zyntra Studio logo" width="30" height="30" loading="lazy" hidden>
+          <span class="brand-logo-fallback" aria-hidden="true">ZS</span>
+        </span>
+        <span class="brand-name"><span class="brand-name__primary">Zyntra</span><span class="brand-name__accent">Studio</span></span>
+      </a>
       <p>Your Partner in Digital Success.</p>
       <p>Kaduwela, Sri Lanka</p>
       <p><a href="tel:+94706004033">070 600 4033</a></p>

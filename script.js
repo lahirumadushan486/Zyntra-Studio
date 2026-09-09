@@ -1,6 +1,55 @@
 /* Zyntra Studio — interactions, accessibility and ambient effects */
+// Central brand logo configuration — replace only this value when the final logo URL is ready.
+const BRAND_LOGO_URL = "PASTE_ZYNTRA_STUDIO_LOGO_IMAGE_URL_HERE";
+
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
+
+  function initializeBrandLogos() {
+    var lockups = Array.prototype.slice.call(document.querySelectorAll('[data-brand-logo]'));
+    var favicon = document.getElementById('brand-favicon');
+    var hasConfiguredLogo = BRAND_LOGO_URL && BRAND_LOGO_URL.indexOf('PASTE_') !== 0;
+
+    function showFallback(lockup) {
+      var image = lockup.querySelector('.brand-logo-image');
+      var fallback = lockup.querySelector('.brand-logo-fallback');
+      if (image) image.hidden = true;
+      if (fallback) fallback.hidden = false;
+    }
+
+    function loadLogo(lockup) {
+      var image = lockup.querySelector('.brand-logo-image');
+      var fallback = lockup.querySelector('.brand-logo-fallback');
+      if (!image || !fallback) return;
+      image.addEventListener('load', function () {
+        image.hidden = false;
+        fallback.hidden = true;
+      }, { once: true });
+      image.addEventListener('error', function () {
+        showFallback(lockup);
+      }, { once: true });
+      image.src = BRAND_LOGO_URL;
+      if (image.complete && image.naturalWidth > 0) {
+        image.hidden = false;
+        fallback.hidden = true;
+      }
+    }
+
+    lockups.forEach(showFallback);
+    if (!hasConfiguredLogo) return;
+
+    var logoProbe = new Image();
+    logoProbe.addEventListener('load', function () {
+      lockups.forEach(loadLogo);
+      if (favicon) favicon.href = BRAND_LOGO_URL;
+    }, { once: true });
+    logoProbe.addEventListener('error', function () {
+      lockups.forEach(showFallback);
+    }, { once: true });
+    logoProbe.src = BRAND_LOGO_URL;
+  }
+
+  initializeBrandLogos();
 
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   var isReduced = reducedMotion.matches;
