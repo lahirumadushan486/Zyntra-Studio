@@ -412,7 +412,7 @@
       </div>
 
       <div class="package-grid">
-        <article class="package-card reveal">
+        <article class="package-card reveal" data-package-id="starter-trial">
           <h3>Starter Trial</h3>
           <p class="price">Rs. 8,000<span>/month</span></p>
           <ul>
@@ -425,7 +425,7 @@
           <button class="btn btn-outline pkg-whatsapp" data-package="Starter Trial">Choose Starter Trial</button>
         </article>
 
-        <article class="package-card is-popular reveal">
+        <article class="package-card is-popular reveal" data-package-id="budget-monthly">
           <span class="popular-badge">Popular</span>
           <h3>Budget Monthly</h3>
           <p class="price">Rs. 18,000<span>/month</span></p>
@@ -440,7 +440,7 @@
           <button class="btn btn-primary pkg-whatsapp" data-package="Budget Monthly">Choose Budget Monthly</button>
         </article>
 
-        <article class="package-card reveal">
+        <article class="package-card reveal" data-package-id="custom-creative-project">
           <h3>Custom Creative Project</h3>
           <p class="price">Request a Quote</p>
           <ul>
@@ -462,7 +462,7 @@
   <section class="section" id="packages-full">
     <div class="section-inner">
       <div class="package-grid package-grid-full">
-        <article class="package-card reveal">
+        <article class="package-card reveal" data-package-id="monthly-video-editing">
           <h3>Monthly Video Editing</h3>
           <p class="price">Rs. 15,000<span>/month</span></p>
           <ul>
@@ -478,7 +478,7 @@
           <button class="btn btn-outline pkg-whatsapp" data-package="Monthly Video Editing">Choose Monthly Video Editing</button>
         </article>
 
-        <article class="package-card reveal">
+        <article class="package-card reveal" data-package-id="ai-video-plan-a">
           <h3>AI Video Plan A</h3>
           <p class="price">Rs. 2,500<span>/video</span></p>
           <ul>
@@ -493,7 +493,7 @@
           <button class="btn btn-outline pkg-whatsapp" data-package="AI Video Plan A">Choose AI Video Plan A</button>
         </article>
 
-        <article class="package-card reveal">
+        <article class="package-card reveal" data-package-id="ai-video-plan-b">
           <h3>AI Video Plan B</h3>
           <p class="price">Rs. 5,000<span>/video</span></p>
           <ul>
@@ -748,7 +748,103 @@
     </div>
   </section>
 
-  <!-- 9. Final CTA -->
+  <!-- 9. Client reviews -->
+  <section class="section reviews-section" id="reviews" aria-labelledby="reviews-title">
+    <div class="section-inner reviews-section__inner">
+      <div class="reviews-heading reveal">
+        <p class="eyebrow">CLIENT REVIEWS</p>
+        <h2 id="reviews-title">What Our Clients Say</h2>
+        <p>Real feedback from clients who have worked with Zyntra Studio.</p>
+      </div>
+
+      <div class="reviews-viewport reveal" id="reviews-viewport" tabindex="0" aria-label="Customer reviews. This row moves automatically; focus or touch it to pause.">
+        <div class="reviews-track" id="reviews-track"></div>
+      </div>
+
+      <div class="reviews-action reveal">
+        <button class="btn btn-primary" id="add-review-button" type="button">Add Your Review</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- Review submission dialog -->
+  <div class="review-modal-overlay" id="review-modal-overlay" hidden>
+    <div class="review-modal" role="dialog" aria-modal="true" aria-labelledby="review-modal-title" aria-describedby="review-modal-description">
+      <button class="review-modal__close" id="review-modal-close" type="button" aria-label="Close review form"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"></path></svg></button>
+      <div class="review-modal__header">
+        <p class="eyebrow">CLIENT REVIEWS</p>
+        <h2 id="review-modal-title">Add Your Review</h2>
+        <p id="review-modal-description">Share your experience working with Zyntra Studio.</p>
+      </div>
+
+      <form class="review-form" id="review-form" novalidate>
+        <div class="review-form__body">
+        <div class="review-form__field">
+          <label for="review-customer-name">Your Name</label>
+          <input id="review-customer-name" name="customerName" type="text" minlength="2" maxlength="80" autocomplete="name" required>
+          <span class="review-form__error" id="review-name-error"></span>
+        </div>
+
+        <div class="review-form__field">
+          <label for="review-text">Your Review</label>
+          <textarea id="review-text" name="reviewText" minlength="20" maxlength="500" rows="6" required aria-describedby="review-character-count review-text-error"></textarea>
+          <div class="review-form__field-meta">
+            <span class="review-form__error" id="review-text-error"></span>
+            <span id="review-character-count">500 characters remaining</span>
+          </div>
+        </div>
+
+        <fieldset class="review-form__rating" id="review-rating-group">
+          <legend>Your Rating</legend>
+          <div class="review-rating-options" role="radiogroup" aria-describedby="review-rating-error">
+            <input class="review-rating-input" type="radio" name="reviewRating" id="review-rating-1" value="1" aria-label="1 star">
+            <label for="review-rating-1" title="1 star"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.5 4.4 1.1 6.2-5.7-3-5.7 3 1.1-6.2-4.5-4.4 6.3-.9L12 2.8Z"></path></svg></label>
+            <input class="review-rating-input" type="radio" name="reviewRating" id="review-rating-2" value="2" aria-label="2 stars">
+            <label for="review-rating-2" title="2 stars"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.5 4.4 1.1 6.2-5.7-3-5.7 3 1.1-6.2-4.5-4.4 6.3-.9L12 2.8Z"></path></svg></label>
+            <input class="review-rating-input" type="radio" name="reviewRating" id="review-rating-3" value="3" aria-label="3 stars">
+            <label for="review-rating-3" title="3 stars"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.5 4.4 1.1 6.2-5.7-3-5.7 3 1.1-6.2-4.5-4.4 6.3-.9L12 2.8Z"></path></svg></label>
+            <input class="review-rating-input" type="radio" name="reviewRating" id="review-rating-4" value="4" aria-label="4 stars">
+            <label for="review-rating-4" title="4 stars"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.5 4.4 1.1 6.2-5.7-3-5.7 3 1.1-6.2-4.5-4.4 6.3-.9L12 2.8Z"></path></svg></label>
+            <input class="review-rating-input" type="radio" name="reviewRating" id="review-rating-5" value="5" aria-label="5 stars">
+            <label for="review-rating-5" title="5 stars"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m12 2.8 2.8 5.7 6.3.9-4.5 4.4 1.1 6.2-5.7-3-5.7 3 1.1-6.2-4.5-4.4 6.3-.9L12 2.8Z"></path></svg></label>
+          </div>
+          <span class="review-form__error" id="review-rating-error"></span>
+        </fieldset>
+
+        <div class="review-form__field review-photo-field">
+          <label for="review-photo">Your Photo (Optional)</label>
+          <input id="review-photo" name="reviewPhoto" type="file" accept="image/jpeg,image/png,image/webp">
+          <p class="review-form__hint">JPG, PNG or WebP. Maximum original file size: 5MB.</p>
+          <span class="review-form__error" id="review-photo-error"></span>
+          <div class="review-photo-preview" id="review-photo-preview" hidden>
+            <img id="review-photo-preview-image" src="" alt="Selected customer photo preview" width="72" height="72">
+            <div>
+              <p id="review-photo-preview-name"></p>
+              <button class="review-photo-action" id="review-photo-change" type="button">Change photo</button>
+              <button class="review-photo-action review-photo-action--remove" id="review-photo-remove" type="button">Remove photo</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="review-honeypot" aria-hidden="true">
+          <label for="review-website">Leave this field empty</label>
+          <input id="review-website" name="website" type="text" tabindex="-1" autocomplete="off">
+        </div>
+
+        <p class="review-form__status" id="review-form-status" aria-live="polite" aria-atomic="true"></p>
+        </div>
+
+        <div class="review-form__actions">
+          <button class="btn btn-primary review-submit" id="review-submit" type="submit"><span class="review-submit__spinner" aria-hidden="true"></span><span class="review-submit__label">Submit Review</span></button>
+          <button class="btn btn-outline" id="review-cancel" type="button">Cancel</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="review-toast" id="review-toast" role="status" aria-live="polite" aria-atomic="true"></div>
+
+  <!-- 10. Final CTA -->
   <section class="final-cta">
     <div class="section-inner">
       <h2 class="reveal">Your Next Brand Story Starts Here.</h2>
@@ -759,7 +855,7 @@
     </div>
   </section>
 
-  <!-- 10. Contact -->
+  <!-- 11. Contact -->
   <section class="section" id="contact">
     <div class="section-inner contact-grid">
       <div class="contact-info reveal">
