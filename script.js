@@ -15,6 +15,19 @@ const SAMPLE_CUSTOMER_REVIEWS = [
 document.addEventListener('DOMContentLoaded', function () {
   'use strict';
 
+  var requestedOffer = new URLSearchParams(window.location.search).get('offer');
+  var offerTargets = {
+    'starter-trial': { id: 'offer-starter-trial', name: 'Starter Trial Package' },
+    'facebook-management': { id: 'offer-facebook-management', name: 'Full Facebook Management' }
+  };
+
+  // Public share URLs use the main domain. Route valid links to the site's
+  // single Offers section so the package cards never need to be duplicated.
+  if (document.body.getAttribute('data-page') === 'home' && window.location.hash === '#offers' && offerTargets[requestedOffer]) {
+    window.location.replace('offers.html?offer=' + encodeURIComponent(requestedOffer) + '#offers');
+    return;
+  }
+
   function initializeBrandLogos() {
     var lockups = Array.prototype.slice.call(document.querySelectorAll('[data-brand-logo]'));
     var favicon = document.getElementById('brand-favicon');
@@ -94,6 +107,93 @@ document.addEventListener('DOMContentLoaded', function () {
     window.scrollTo({ top: Math.max(0, top), behavior: smooth && !isReduced ? 'smooth' : 'auto' });
     setActiveNav(target.id);
     return true;
+  }
+
+  function initializeOfferSharing() {
+    var shareButtons = document.querySelectorAll('[data-offer-share]');
+    if (!shareButtons.length) return;
+
+    function buildOfferUrl(slug) {
+      var url = new URL('https://www.zyntrastudio.lk/');
+      url.searchParams.set('offer', slug);
+      url.hash = 'offers';
+      return url.toString();
+    }
+
+    function fallbackCopy(text) {
+      var textarea = document.createElement('textarea');
+      textarea.value = text;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      document.body.appendChild(textarea);
+      textarea.select();
+      var copied = false;
+      try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+      textarea.remove();
+      return copied;
+    }
+
+    function copyOfferUrl(url) {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        return navigator.clipboard.writeText(url).then(function () { return true; }, function () { return fallbackCopy(url); });
+      }
+      return Promise.resolve(fallbackCopy(url));
+    }
+
+    function showButtonFeedback(button, label) {
+      var labelElement = button.querySelector('span');
+      if (!labelElement) return;
+      window.clearTimeout(button.offerFeedbackTimer);
+      labelElement.textContent = label;
+      button.offerFeedbackTimer = window.setTimeout(function () {
+        labelElement.textContent = 'Share Offer';
+      }, 2000);
+    }
+
+    function copyWithFeedback(button, url) {
+      return copyOfferUrl(url).then(function (copied) {
+        showButtonFeedback(button, copied ? 'Link Copied' : 'Copy Failed');
+      }).catch(function (error) {
+        console.warn('Offer link could not be copied.', error);
+        showButtonFeedback(button, 'Copy Failed');
+      });
+    }
+
+    shareButtons.forEach(function (button) {
+      button.addEventListener('click', function () {
+        var slug = button.getAttribute('data-offer-share');
+        var offer = offerTargets[slug];
+        if (!offer) return;
+
+        var url = buildOfferUrl(slug);
+        var message = 'Zyntra Studio Offers\n\n' + offer.name + '\nView the complete package details, included services and pricing using the link below:\n\n' + url;
+
+        if (typeof navigator.share === 'function') {
+          navigator.share({ title: offer.name, text: message, url: url }).catch(function (error) {
+            if (error && error.name === 'AbortError') return;
+            console.warn('Native offer sharing failed; copying the link instead.', error);
+            copyWithFeedback(button, url);
+          });
+          return;
+        }
+
+        copyWithFeedback(button, url);
+      });
+    });
+  }
+
+  initializeOfferSharing();
+
+  if (document.body.getAttribute('data-page') === 'offers' && offerTargets[requestedOffer]) {
+    var selectedOffer = document.getElementById(offerTargets[requestedOffer].id);
+    if (selectedOffer) {
+      selectedOffer.classList.add('is-selected-offer');
+      window.setTimeout(function () { selectedOffer.classList.remove('is-selected-offer'); }, 9000);
+      window.requestAnimationFrame(function () {
+        window.requestAnimationFrame(function () { scrollToSection('#offers', true); });
+      });
+    }
   }
 
   hamburger.addEventListener('click', function () {

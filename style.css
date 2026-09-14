@@ -133,6 +133,18 @@ body.review-modal-open{position:fixed;right:0;left:0;width:100%;overflow:hidden}
 @media(max-width:560px) and (max-height:700px){.review-modal__header{padding-block:15px 10px}.review-modal__header .eyebrow{margin-bottom:4px}.review-modal__header>p:last-child{display:none}.review-form__body{gap:8px}.review-form__field textarea{height:120px}.review-form__actions{gap:7px;padding-block:9px max(9px,env(safe-area-inset-bottom))}}
 @media(prefers-reduced-motion:reduce){.reviews-section__inner{overflow:visible}.reviews-viewport{padding-inline:0;overflow-x:auto}.review-card{flex-basis:var(--review-card-width,360px);width:var(--review-card-width,360px)}}
 .review-modal{min-height:0;max-height:min(calc(100vh - 32px),100%)}
+
+/* Offer deep links and secondary share actions */
+.offer-card__actions{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:10px;margin-top:auto}
+.offer-card__actions .offer-card__cta{width:100%;min-width:0;margin-top:0;white-space:normal;overflow-wrap:anywhere}
+.offer-share-button{display:inline-flex;min-width:148px;align-items:center;justify-content:center;gap:8px;border:1px solid rgba(84,216,255,.42);color:#dcefff;background:rgba(40,100,255,.08);box-shadow:inset 0 1px rgba(255,255,255,.035);white-space:normal}
+.offer-share-button svg{width:18px;height:18px;flex:0 0 18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.offer-share-button:hover{border-color:rgba(84,216,255,.72);background:rgba(40,100,255,.16)}
+.offer-share-button:focus-visible{outline:2px solid var(--cyan-accent);outline-offset:4px}
+.offer-card.is-selected-offer{border-color:rgba(84,216,255,.92);box-shadow:0 0 0 1px rgba(77,124,255,.5),0 0 28px rgba(84,216,255,.34),0 22px 56px rgba(40,100,255,.25),inset 0 1px rgba(255,255,255,.08);animation:offerSelectedPulse 1.8s ease-in-out 5}
+@keyframes offerSelectedPulse{0%,100%{box-shadow:0 0 0 1px rgba(77,124,255,.45),0 0 22px rgba(84,216,255,.24),0 20px 50px rgba(40,100,255,.2),inset 0 1px rgba(255,255,255,.08)}50%{box-shadow:0 0 0 2px rgba(84,216,255,.72),0 0 38px rgba(84,216,255,.44),0 24px 64px rgba(40,100,255,.3),inset 0 1px rgba(255,255,255,.1)}}
+@media(max-width:560px){.offer-card__actions{grid-template-columns:minmax(0,1fr)}.offer-share-button{width:100%;min-width:0}}
+@media(prefers-reduced-motion:reduce){.offer-card.is-selected-offer{animation:none!important}}
 @supports(height:100dvh){.review-modal{max-height:min(calc(100dvh - 32px),100%)}}
 
 /* Compact viewport-safe review dialog */
