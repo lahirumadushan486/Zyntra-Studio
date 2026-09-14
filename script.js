@@ -3,8 +3,8 @@
 const BRAND_LOGO_URL = "https://res.cloudinary.com/tqdnopaj/image/upload/v1788956884/1080x1080_logo.jpg";
 
 // Public Supabase configuration for customer reviews. Never place a service_role key here.
-const SUPABASE_URL = "PASTE_SUPABASE_PROJECT_URL_HERE";
-const SUPABASE_PUBLISHABLE_KEY = "PASTE_SUPABASE_PUBLISHABLE_KEY_HERE";
+const SUPABASE_URL = "https://mdtzjtirfzpimwwbfczk.supabase.co";
+const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Ay78D_983Nz34vIG2KQGyg_q1oAfiqX";
 const REVIEW_AUTO_PUBLISH = true;
 
 // Editable placeholder content. Replace these clearly labelled samples with authentic reviews.
