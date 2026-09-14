@@ -10,10 +10,6 @@ const REVIEW_AUTO_PUBLISH = true;
 // Editable placeholder content. Replace these clearly labelled samples with authentic reviews.
 const SAMPLE_CUSTOMER_REVIEWS = [
   { id: 'sample-review-01', customerName: 'Customer 01', reviewText: 'Sample review — replace this with an authentic customer review.', rating: 5, photoUrl: '', createdAt: '2026-01-01' },
-  { id: 'sample-review-02', customerName: 'Customer 02', reviewText: 'Sample review — replace this with an authentic customer review.', rating: 4, photoUrl: '', createdAt: '2026-01-02' },
-  { id: 'sample-review-03', customerName: 'Customer 03', reviewText: 'Sample review — replace this with an authentic customer review.', rating: 5, photoUrl: '', createdAt: '2026-01-03' },
-  { id: 'sample-review-04', customerName: 'Customer 04', reviewText: 'Sample review — replace this with an authentic customer review.', rating: 4, photoUrl: '', createdAt: '2026-01-04' },
-  { id: 'sample-review-05', customerName: 'Customer 05', reviewText: 'Sample review — replace this with an authentic customer review.', rating: 5, photoUrl: '', createdAt: '2026-01-05' }
 ];
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -625,6 +621,11 @@ document.addEventListener('DOMContentLoaded', function () {
     var reviewsTrack = document.getElementById('reviews-track');
     var reviewsViewport = document.getElementById('reviews-viewport');
     var addReviewButton = document.getElementById('add-review-button');
+    // REVIEW SHARE LINK START
+    var shareReviewButton = document.getElementById('share-review-button');
+    var reviewsSection = document.getElementById('reviews');
+    var reviewShareUrl = 'https://www.zyntrastudio.lk/?review=1#reviews';
+    // REVIEW SHARE LINK END
     var reviewModalOverlay = document.getElementById('review-modal-overlay');
     var reviewModalClose = document.getElementById('review-modal-close');
     var reviewCancel = document.getElementById('review-cancel');
@@ -1059,6 +1060,86 @@ document.addEventListener('DOMContentLoaded', function () {
       reviewToast.classList.add('is-visible');
       reviewToastTimer = window.setTimeout(function () { reviewToast.classList.remove('is-visible'); }, 3600);
     }
+
+    // REVIEW SHARE LINK START
+    function fallbackCopyReviewUrl() {
+      var activeElement = document.activeElement;
+      var textarea = document.createElement('textarea');
+      textarea.value = reviewShareUrl;
+      textarea.setAttribute('readonly', '');
+      textarea.style.position = 'fixed';
+      textarea.style.opacity = '0';
+      textarea.style.pointerEvents = 'none';
+      document.body.appendChild(textarea);
+      textarea.select();
+      textarea.setSelectionRange(0, textarea.value.length);
+      var copied = false;
+      try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+      textarea.remove();
+      if (activeElement && typeof activeElement.focus === 'function') activeElement.focus();
+      return copied;
+    }
+
+    function copyReviewUrl() {
+      if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+        return navigator.clipboard.writeText(reviewShareUrl).then(function () { return true; }, fallbackCopyReviewUrl);
+      }
+      return Promise.resolve(fallbackCopyReviewUrl());
+    }
+
+    function copyReviewUrlAndNotify(silentFailure) {
+      return copyReviewUrl().then(function (copied) {
+        if (copied) showReviewToast('Review link copied!');
+        else if (!silentFailure) showReviewToast('Unable to copy the review link.');
+      });
+    }
+
+    function shareReviewLink() {
+      if (typeof navigator.share !== 'function') {
+        copyReviewUrlAndNotify();
+        return;
+      }
+      navigator.share({
+        title: 'Review Zyntra Studio',
+        text: 'Share your experience with Zyntra Studio. Your feedback helps us grow.',
+        url: reviewShareUrl
+      }).catch(function (error) {
+        // A cancelled native share quietly falls back to copying the link.
+        return copyReviewUrlAndNotify(Boolean(error && error.name === 'AbortError'));
+      });
+    }
+
+    function openSharedReviewForm() {
+      var params = new URLSearchParams(window.location.search);
+      if (params.get('review') !== '1' || !reviewsSection) return;
+      window.requestAnimationFrame(function () {
+        reviewsSection.scrollIntoView({ behavior: isReduced ? 'auto' : 'smooth', block: 'start' });
+        window.setTimeout(openReviewModal, isReduced ? 0 : 650);
+      });
+    }
+
+    if (shareReviewButton) shareReviewButton.addEventListener('click', shareReviewLink);
+    if (document.readyState === 'complete') openSharedReviewForm();
+    else window.addEventListener('load', openSharedReviewForm, { once: true });
+    // REVIEW SHARE LINK END
+
+    // NAV REVIEW BUTTON START
+    var navReviewButton = document.getElementById('nav-review-button');
+
+    function openReviewFromNavigation(event) {
+      event.preventDefault();
+      closeMenu();
+      var destination = new URL(reviewShareUrl);
+      var historyUrl = destination.origin === window.location.origin
+        ? destination.pathname + destination.search + destination.hash
+        : window.location.pathname + destination.search + destination.hash;
+      window.history.pushState(null, '', historyUrl);
+      scrollToSection('#reviews', true);
+      window.setTimeout(openReviewModal, isReduced ? 0 : 650);
+    }
+
+    if (navReviewButton) navReviewButton.addEventListener('click', openReviewFromNavigation);
+    // NAV REVIEW BUTTON END
 
     function setReviewSubmitting(isSubmitting) {
       submittingReview = isSubmitting;
