@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+  <title>Client Portal | Zyntra Studio</title>
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/client-portal.css">
+</head>
+<body class="client-portal-page">
+  <div class="cp-app">
+    <aside class="cp-sidebar" id="portal-sidebar">
+      <a class="cp-brand" href="index.html"><span>ZS</span><strong>Zyntra <i>Studio</i></strong></a>
+      <nav class="cp-nav" aria-label="Client portal">
+        <button class="cp-nav-button is-active" type="button" data-view="overview">Overview</button><button class="cp-nav-button" type="button" data-view="projects">Projects</button><button class="cp-nav-button" type="button" data-view="calendar">Content Calendar</button><button class="cp-nav-button" type="button" data-view="drafts">Draft Reviews</button><button class="cp-nav-button" type="button" data-view="downloads">Final Downloads</button><button class="cp-nav-button" type="button" data-view="payments">Payments</button><button class="cp-nav-button" type="button" data-view="notifications">Notifications</button><button class="cp-nav-button" type="button" data-view="profile">Profile</button><button class="cp-nav-button" type="button" data-view="support">Contact Support</button>
+      </nav>
+      <div class="cp-sidebar-footer"><button class="cp-button cp-button--secondary" type="button" data-logout>Logout</button><a class="cp-back-link" href="index.html">Back to website</a></div>
+    </aside>
+    <main class="cp-main">
+      <header class="cp-topbar"><button class="cp-menu-button" id="portal-menu" type="button" aria-controls="portal-sidebar" aria-expanded="false" aria-label="Open navigation"><svg viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h16"></path></svg></button><div class="cp-topbar-title"><strong id="portal-client-name">Client Portal</strong><span id="portal-business-name">Secure workspace</span></div><div class="cp-topbar-actions"><a class="cp-button cp-button--secondary" href="https://wa.me/94706004033" target="_blank" rel="noopener">WhatsApp Support</a><button class="cp-button cp-button--danger" type="button" data-logout>Logout</button></div></header>
+      <div class="cp-content" id="portal-content" aria-live="polite">
+        <div class="cp-loading" id="portal-loading">Loading your secure portal…</div>
+        <section class="cp-view" data-portal-view="overview" hidden><div class="cp-view-header"><div><p class="cp-eyebrow">Dashboard overview</p><h1 id="overview-welcome">Welcome.</h1><p>Your projects, approvals and upcoming content in one secure workspace.</p></div></div><div class="cp-grid cp-stat-grid" id="overview-stats"></div><div class="cp-grid cp-dashboard-grid"><article class="cp-panel"><h2>Current projects</h2><div id="overview-projects"></div></article><article class="cp-panel"><h2>Recent notifications</h2><div id="overview-notifications"></div></article></div></section>
+        <section class="cp-view" data-portal-view="projects" hidden><div class="cp-view-header"><div><p class="cp-eyebrow">Your work</p><h2>Projects</h2><p>Track status, progress and every related project item.</p></div></div><div class="cp-grid cp-project-grid" id="projects-grid"></div></section>
+        <section class="cp-view" data-portal-view="calendar" hidden><div class="cp-view-header"><div><p class="cp-eyebrow">Publishing plan</p><h2>Content Calendar</h2></div></div><div class="cp-filters"><input id="calendar-month" type="month" aria-label="Calendar month"><select id="calendar-platform" aria-label="Filter by platform"><option value="">All platforms</option></select><select id="calendar-status" aria-label="Filter by status"><option value="">All statuses</option></select></div><div class="cp-calendar" id="calendar-grid"></div><div class="cp-grid cp-agenda" id="calendar-agenda"></div><article class="cp-panel" style="margin-top:16px"><h3>Upcoming content</h3><div id="upcoming-content"></div></article></section>
+        <section class="cp-view" data-portal-view="drafts" hidden><div class="cp-view-header"><div><p class="cp-eyebrow">Review queue</p><h2>Draft Reviews</h2><p>Preview work, approve it or request a clear revision.</p></div></div><div class="cp-grid cp-file-grid" id="drafts-grid"></div></section>
+        <section class="cp-view" data-portal-view="downloads" hidden><div class="cp-view-header"><div><p class="cp-eyebrow">Completed work</p><h2>Final Downloads</h2><p>Private links are generated only when you request a download.</p></div></div><div class="cp-grid cp-file-grid" id="deliverables-grid"></div></section>
+        <section class="cp-view" data-portal-view="payments" hidden><div class="cp-view-header"><div><p class="cp-eyebrow">Billing records</p><h2>Payments &amp; Invoices</h2><p>Record display only. Online payments are not enabled.</p></div></div><div class="cp-grid cp-invoice-grid" id="invoices-grid"></div></section>
+        <section class="cp-view" data-portal-view="notifications" hidden><div class="cp-view-header"><div><p class="cp-eyebrow">Updates</p><h2>Notifications</h2></div><button class="cp-button cp-button--secondary" id="mark-all-read" type="button">Mark all read</button></div><div class="cp-grid" id="notifications-list"></div></section>
+        <section class="cp-view" data-portal-view="profile" hidden><div class="cp-view-header"><div><p class="cp-eyebrow">Account</p><h2>Profile &amp; Contact</h2></div></div><div class="cp-grid cp-profile-grid"><form class="cp-panel cp-form" id="profile-form"><label class="cp-field"><span>Full name</span><input id="profile-full-name" required maxlength="120"></label><label class="cp-field"><span>Business name</span><input id="profile-business-name" maxlength="160"></label><label class="cp-field"><span>Phone</span><input id="profile-phone" inputmode="tel" maxlength="40"></label><button class="cp-button cp-button--primary" type="submit">Save Profile</button><p class="cp-form-status" id="profile-status" role="status"></p></form><article class="cp-panel"><h3>Account security</h3><p class="cp-empty">Your email and password are managed securely by Supabase Authentication. Contact Zyntra Studio to change account access.</p></article></div></section>
+        <section class="cp-view" data-portal-view="support" hidden><div class="cp-view-header"><div><p class="cp-eyebrow">Direct help</p><h2>Contact Support</h2><p>Start a WhatsApp conversation with the correct project details included.</p></div></div><article class="cp-panel cp-support-card"><label class="cp-field"><span>Select project</span><select id="support-project"></select></label><button class="cp-button cp-button--primary" id="support-whatsapp" type="button">Contact Zyntra Studio on WhatsApp</button></article></section>
+      </div>
+    </main>
+  </div>
+  <div class="cp-modal-backdrop" id="portal-modal" hidden><div class="cp-modal" role="dialog" aria-modal="true" aria-labelledby="portal-modal-title"><button class="cp-modal-close" type="button" aria-label="Close dialog">×</button><div id="portal-modal-body"></div></div></div>
+  <div class="cp-toast" id="portal-toast" role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/client-auth.js"></script><script src="js/client-portal.js"></script>
+</body>
+</html>

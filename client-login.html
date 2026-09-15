@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Client Sign In | Zyntra Studio</title>
+  <meta name="description" content="Secure Zyntra Studio client portal sign in.">
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/client-portal.css">
+</head>
+<body class="client-login-page">
+  <main class="cp-login-shell">
+    <a class="cp-brand" href="index.html" aria-label="Zyntra Studio home"><span>ZS</span><strong>Zyntra <i>Studio</i></strong></a>
+    <section class="cp-login-card" aria-labelledby="login-title">
+      <div class="cp-login-copy">
+        <p class="cp-eyebrow">Secure client access</p>
+        <h1 id="login-title">Welcome back.</h1>
+        <p>Sign in to review projects, approve drafts and download completed work.</p>
+      </div>
+      <form id="client-login-form" class="cp-form" novalidate>
+        <label class="cp-field"><span>Email address</span><input id="login-email" type="email" autocomplete="email" required></label>
+        <label class="cp-field"><span>Password</span><span class="cp-password-field"><input id="login-password" type="password" autocomplete="current-password" minlength="8" required><button id="toggle-password" type="button" aria-label="Show password">Show</button></span></label>
+        <button id="login-submit" class="cp-button cp-button--primary" type="submit"><span>Sign In</span><i class="cp-spinner" aria-hidden="true"></i></button>
+        <button id="forgot-password" class="cp-text-button" type="button">Forgot Password?</button>
+        <p id="login-status" class="cp-form-status" role="status" aria-live="polite"></p>
+      </form>
+      <form id="password-reset-form" class="cp-form" hidden novalidate>
+        <p class="cp-reset-intro">Choose a new password for your portal account.</p>
+        <label class="cp-field"><span>New password</span><input id="new-password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="cp-field"><span>Confirm password</span><input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <button id="reset-submit" class="cp-button cp-button--primary" type="submit">Update Password</button>
+        <p id="reset-status" class="cp-form-status" role="status" aria-live="polite"></p>
+      </form>
+      <a class="cp-back-link" href="index.html">← Back to the Zyntra Studio website</a>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/client-auth.js"></script>
+  <script>
+  (function(){'use strict';
+    const auth=window.ZyntraClientAuth,client=auth.client(),form=document.getElementById('client-login-form'),status=document.getElementById('login-status'),submit=document.getElementById('login-submit'),password=document.getElementById('login-password'),resetForm=document.getElementById('password-reset-form');
+    function setLoading(value){submit.disabled=value;submit.classList.toggle('is-loading',value)}
+    function showStatus(target,message,error){target.textContent=message;target.classList.toggle('is-error',Boolean(error))}
+    document.getElementById('toggle-password').addEventListener('click',function(){const visible=password.type==='text';password.type=visible?'password':'text';this.textContent=visible?'Show':'Hide';this.setAttribute('aria-label',visible?'Show password':'Hide password')});
+    form.addEventListener('submit',async function(event){event.preventDefault();showStatus(status,'',false);if(!form.reportValidity())return;setLoading(true);const result=await client.auth.signInWithPassword({email:document.getElementById('login-email').value.trim(),password:password.value});if(result.error){showStatus(status,auth.safeMessage(result.error,'Sign in failed. Please try again.'),true);setLoading(false);return}try{const destination=await auth.routeForSession(result.data.session);if(destination)location.replace(destination)}catch(error){showStatus(status,error.message,true);setLoading(false)}});
+    document.getElementById('forgot-password').addEventListener('click',async function(){const email=document.getElementById('login-email');if(!email.value.trim()||!email.checkValidity()){showStatus(status,'Enter your account email first.',true);email.focus();return}this.disabled=true;const redirectTo=new URL('client-login.html',location.href).href;const result=await client.auth.resetPasswordForEmail(email.value.trim(),{redirectTo:redirectTo});showStatus(status,result.error?'The reset email could not be sent. Please try again.':'If an account matches that email, password reset instructions have been sent.',Boolean(result.error));this.disabled=false});
+    client.auth.onAuthStateChange(function(event,session){if(event==='PASSWORD_RECOVERY'){form.hidden=true;resetForm.hidden=false;document.getElementById('new-password').focus()}else if(event==='SIGNED_IN'&&session&&!location.hash.includes('type=recovery')){auth.routeForSession(session).then(function(destination){if(destination)location.replace(destination)}).catch(function(error){showStatus(status,error.message,true)})}});
+    resetForm.addEventListener('submit',async function(event){event.preventDefault();const next=document.getElementById('new-password'),confirm=document.getElementById('confirm-password'),resetStatus=document.getElementById('reset-status');showStatus(resetStatus,'',false);if(!resetForm.reportValidity())return;if(next.value!==confirm.value){showStatus(resetStatus,'The passwords do not match.',true);confirm.focus();return}document.getElementById('reset-submit').disabled=true;const result=await client.auth.updateUser({password:next.value});if(result.error){showStatus(resetStatus,'Your password could not be updated. Request a new reset link.',true);document.getElementById('reset-submit').disabled=false;return}showStatus(resetStatus,'Password updated. Redirecting to your portal…',false);const destination=await auth.routeForSession(result.data.user?{user:result.data.user}:(await client.auth.getSession()).data.session);if(destination)location.replace(destination)});
+    const params=new URLSearchParams(location.search);if(params.get('error'))showStatus(status,params.get('error')==='inactive'?'This account is inactive. Contact Zyntra Studio.':'Please sign in again to continue.',true);
+    client.auth.getSession().then(async function(result){if(result.data.session&&!location.hash.includes('type=recovery')){try{const destination=await auth.routeForSession(result.data.session);if(destination)location.replace(destination)}catch(error){showStatus(status,error.message,true)}}});
+  }());
+  </script>
+</body>
+</html>
