@@ -290,6 +290,43 @@ document.addEventListener('DOMContentLoaded', function () {
     revealElements.forEach(function (element) { revealObserver.observe(element); });
   } else revealElements.forEach(function (element) { element.classList.add('is-visible'); });
 
+  function initializeProcessJourney() {
+    var journey = document.querySelector('[data-process-journey]');
+    if (!journey) return;
+    var journeyCards = journey.querySelectorAll('[data-process-step]');
+
+    function revealJourney() {
+      journey.classList.add('is-active');
+    }
+
+    if ('IntersectionObserver' in window && !isReduced) {
+      var journeyObserver = new IntersectionObserver(function (entries, observer) {
+        entries.forEach(function (entry) {
+          if (!entry.isIntersecting) return;
+          revealJourney();
+          observer.unobserve(entry.target);
+        });
+      }, { rootMargin: '0px 0px -12% 0px', threshold: 0.16 });
+      journeyObserver.observe(journey);
+    } else revealJourney();
+
+    journeyCards.forEach(function (card) {
+      function activateStep() {
+        journey.setAttribute('data-active-step', card.getAttribute('data-process-step'));
+      }
+      function clearStep(event) {
+        if (event.type === 'focusout' && card.contains(event.relatedTarget)) return;
+        journey.removeAttribute('data-active-step');
+      }
+      card.addEventListener('pointerenter', activateStep);
+      card.addEventListener('pointerleave', clearStep);
+      card.addEventListener('focusin', activateStep);
+      card.addEventListener('focusout', clearStep);
+    });
+  }
+
+  initializeProcessJourney();
+
   document.querySelectorAll('.accordion-trigger').forEach(function (trigger) {
     trigger.addEventListener('click', function () {
       var panel = trigger.parentElement.nextElementSibling;

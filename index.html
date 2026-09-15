@@ -19,6 +19,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
+<link rel="stylesheet" href="css/package-chat.css">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -219,34 +220,56 @@
   </section>
 
   <!-- 4. Creative process -->
-  <section class="section" id="process">
-    <div class="section-inner">
-      <div class="section-head reveal">
-        <p class="eyebrow">How we work</p>
-        <h2>A clear process from idea to delivery.</h2>
+  <section class="section process-journey-section" id="process" data-process-journey aria-labelledby="process-title">
+    <div class="process-journey__backdrop" aria-hidden="true"></div>
+    <div class="section-inner process-journey__inner">
+      <header class="process-journey__header">
+        <div class="process-journey__heading">
+          <p class="eyebrow">How we work</p>
+          <h2 id="process-title">A clear process from idea to delivery.</h2>
+        </div>
+        <div class="process-journey__intro">
+          <span class="process-journey__status"><i aria-hidden="true"></i>04 step creative workflow</span>
+          <p>A focused creative workflow built to turn your ideas into content that connects, performs and grows your brand.</p>
+        </div>
+      </header>
+      <div class="process-journey__track" aria-hidden="true">
+        <span class="process-journey__track-stage"><i></i><b></b></span>
+        <span class="process-journey__track-stage"><i></i><b></b></span>
+        <span class="process-journey__track-stage"><i></i><b></b></span>
+        <span class="process-journey__track-stage"><i></i></span>
       </div>
-      <div class="process-grid">
-        <div class="process-step reveal">
-          <span class="process-num">01</span>
+      <ol class="process-journey__cards">
+        <li class="process-journey__card" data-process-step="1" tabindex="0">
+          <span class="process-journey__number" aria-hidden="true">01</span>
+          <div class="process-journey__icon" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><circle cx="21" cy="21" r="11"></circle><path d="m29 29 10 10M21 15v12M15 21h12"></path><circle cx="21" cy="21" r="3"></circle></svg></div>
+          <p class="process-journey__step-label">Step 01</p>
           <h3>Discover</h3>
-          <p>Understand the business, target audience, goals, budget and timeline.</p>
-        </div>
-        <div class="process-step reveal">
-          <span class="process-num">02</span>
+          <p class="process-journey__description">Understand the business, target audience, goals, budget and timeline.</p>
+        </li>
+        <li class="process-journey__card" data-process-step="2" tabindex="0">
+          <span class="process-journey__number" aria-hidden="true">02</span>
+          <div class="process-journey__icon" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M13 7h17l7 7v27H13z"></path><path d="M30 7v8h7M19 23h12M19 29h12M19 35h8"></path><circle cx="17" cy="12" r="1.5"></circle></svg></div>
+          <p class="process-journey__step-label">Step 02</p>
           <h3>Plan</h3>
-          <p>Develop the concept, content direction, shot list or design plan.</p>
-        </div>
-        <div class="process-step reveal">
-          <span class="process-num">03</span>
+          <p class="process-journey__description">Develop the concept, content direction, shot list or design plan.</p>
+        </li>
+        <li class="process-journey__card" data-process-step="3" tabindex="0">
+          <span class="process-journey__number" aria-hidden="true">03</span>
+          <div class="process-journey__icon" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M8 17h7l3-5h12l3 5h7v23H8z"></path><circle cx="24" cy="28" r="7"></circle><path d="M36 22h.01M13 10l4-4"></path></svg></div>
+          <p class="process-journey__step-label">Step 03</p>
           <h3>Create</h3>
-          <p>Design, shoot, edit and produce the content.</p>
-        </div>
-        <div class="process-step reveal">
-          <span class="process-num">04</span>
+          <p class="process-journey__description">Design, shoot, edit and produce the content with professional attention to every detail.</p>
+        </li>
+        <li class="process-journey__card process-journey__card--final" data-process-step="4" tabindex="0">
+          <span class="process-journey__number" aria-hidden="true">04</span>
+          <div class="process-journey__icon" aria-hidden="true"><svg viewBox="0 0 48 48" focusable="false"><path d="M10 38 23 25l7 7 9-13"></path><path d="M31 19h8v8M12 25V10h15"></path><path d="M17 16h5M17 21h8"></path></svg></div>
+          <p class="process-journey__step-label">Step 04</p>
           <h3>Deliver &amp; Grow</h3>
-          <p>Provide final content, schedule posts when included, support promotions and review results.</p>
-        </div>
-      </div>
+          <p class="process-journey__description">Provide final content, schedule posts when included, support promotions and review results.</p>
+          <span class="process-journey__ready"><i aria-hidden="true"></i>Ready to grow</span>
+        </li>
+      </ol>
     </div>
   </section>
 
@@ -1031,5 +1054,6 @@
 <button class="back-to-top" id="back-to-top" aria-label="Back to top">&uarr;</button>
 
 <script src="script.js"></script>
+<script src="js/package-chat.js"></script>
 </body>
 </html>
