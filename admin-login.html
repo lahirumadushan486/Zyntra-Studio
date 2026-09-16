@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
+  <title>Admin Sign In | Zyntra Studio</title><meta name="description" content="Secure Zyntra Studio administrator sign in."><link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/client-portal.css">
+</head>
+<body class="client-login-page" data-login-role="admin">
+  <main class="cp-login-shell">
+    <a class="cp-brand" href="index.html" aria-label="Zyntra Studio home"><span>ZS</span><strong>Zyntra <i>Studio</i></strong></a>
+    <section class="cp-login-card" aria-labelledby="login-title">
+      <div class="cp-login-header"><div class="cp-login-copy"><p class="cp-eyebrow">Restricted administration</p><h1 id="login-title">Admin sign in.</h1><p>Access is granted only to active administrator profiles verified by Supabase.</p></div><button class="cp-login-share" type="button" data-share-url="https://zyntrastudio.lk/admin/login" data-share-title="Zyntra Studio Admin Login" data-share-text="Secure Zyntra Studio Admin Portal access." data-tooltip="Share Admin Login" aria-label="Share Admin Login"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"></path></svg></button></div>
+      <form id="portal-login-form" class="cp-form" novalidate>
+        <label class="cp-field"><span>Email address</span><input id="login-email" type="email" autocomplete="email" required></label>
+        <label class="cp-field"><span>Password</span><span class="cp-password-field"><input id="login-password" type="password" autocomplete="current-password" minlength="8" required><button id="toggle-password" type="button" aria-label="Show password">Show</button></span></label>
+        <button id="login-submit" class="cp-button cp-button--primary" type="submit"><span data-button-label>Sign In</span><i class="cp-spinner" aria-hidden="true"></i></button>
+        <button id="forgot-password" class="cp-text-button" type="button">Forgot Password?</button><p id="login-status" class="cp-form-status" role="status" aria-live="polite"></p>
+      </form>
+      <form id="password-reset-form" class="cp-form" hidden novalidate>
+        <p class="cp-reset-intro">Choose a new password for your portal account.</p>
+        <label class="cp-field"><span>New password</span><input id="new-password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <label class="cp-field"><span>Confirm password</span><input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required></label>
+        <button id="reset-submit" class="cp-button cp-button--primary" type="submit">Update Password</button><p id="reset-status" class="cp-form-status" role="status" aria-live="polite"></p>
+      </form>
+      <a class="cp-back-link" href="client-login.html">Client sign in</a>
+    </section>
+  </main>
+  <div class="portal-share-toast" data-share-toast role="status" aria-live="polite"></div>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/client-auth.js"></script><script src="js/login.js"></script><script src="js/portal-share.js"></script>
+</body>
+</html>

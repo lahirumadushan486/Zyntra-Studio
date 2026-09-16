@@ -1,22 +1,33 @@
 (function configureZyntraSupabase(global) {
   'use strict';
 
-  const config = Object.freeze({
-    url: 'https://mdtzjtirfzpimwwbfczk.supabase.co',
-    publishableKey: 'sb_publishable_Ay78D_983Nz34vIG2KQGyg_q1oAfiqX'
-  });
-  let client = null;
+  // Frontend-safe project settings. Never put a service_role key in this file.
+  const SUPABASE_URL = "https://mdtzjtirfzpimwwbfczk.supabase.co";
+  const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Ay78D_983Nz34vIG2KQGyg_q1oAfiqX";
+  let sharedClient = null;
 
-  function getClient() {
-    if (client) return client;
-    if (!global.supabase || typeof global.supabase.createClient !== 'function') {
-      throw new Error('The secure portal connection could not be initialized.');
+  function validateConfiguration() {
+    if (!SUPABASE_URL || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(SUPABASE_URL) ||
+        !SUPABASE_PUBLISHABLE_KEY || !/^sb_publishable_/i.test(SUPABASE_PUBLISHABLE_KEY)) {
+      throw new Error('Supabase configuration is missing or invalid.');
     }
-    client = global.supabase.createClient(config.url, config.publishableKey, {
-      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true }
-    });
-    return client;
   }
 
-  global.ZyntraSupabase = Object.freeze({ config: config, getClient: getClient });
+  function getClient() {
+    if (sharedClient) return sharedClient;
+    validateConfiguration();
+    if (!global.supabase || typeof global.supabase.createClient !== 'function') {
+      throw new Error('The Supabase library could not be loaded. Check your network connection.');
+    }
+    sharedClient = global.supabase.createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: true, flowType: 'implicit' }
+    });
+    return sharedClient;
+  }
+
+  global.ZyntraSupabase = Object.freeze({
+    SUPABASE_URL: "https://mdtzjtirfzpimwwbfczk.supabase.co",
+    SUPABASE_PUBLISHABLE_KEY: "sb_publishable_Ay78D_983Nz34vIG2KQGyg_q1oAfiqX",
+    getClient: getClient
+  });
 }(window));
