@@ -2,7 +2,7 @@
   'use strict';
   const auth = global.ZyntraClientAuth;
   const supabase = auth.client();
-  const state = { context: null, projects: [], calendar: [], drafts: [], revisions: [], deliverables: [], invoices: [], notifications: [] };
+  const state = { context: null, projects: [], calendar: [], drafts: [], revisions: [], deliverables: [], invoices: [], notifications: [], clientLoginId: null };
   const content = document.getElementById('portal-content');
   const sidebar = document.getElementById('portal-sidebar');
   const modal = document.getElementById('portal-modal');
@@ -22,6 +22,7 @@
   function openModal(titleText, bodyNode) { modalBody.replaceChildren(); const title = el('h2', '', titleText); title.id = 'portal-modal-title'; modalBody.append(title, bodyNode); modal.hidden = false; modal.querySelector('.cp-modal-close').focus(); }
   function closeModal() { modal.hidden = true; modalBody.replaceChildren(); submittingRevision = false; }
   function button(label, className) { const node = el('button', 'cp-button ' + (className || 'cp-button--secondary'), label); node.type = 'button'; return node; }
+  function withRequestTimeout(request) { return new Promise((resolve, reject) => { const timer = setTimeout(() => { const error = new Error('Portal data request timed out.'); error.code = 'PORTAL_REQUEST_TIMEOUT'; reject(error); }, 15000); Promise.resolve(request).then(value => { clearTimeout(timer); resolve(value); }, error => { clearTimeout(timer); reject(error); }); }); }
 
   function showView(name) {
     document.querySelectorAll('[data-portal-view]').forEach(node => { node.hidden = node.dataset.portalView !== name; });
@@ -31,6 +32,10 @@
   }
 
   async function loadData() {
+    if (global.ZyntraPortalSession && global.ZyntraPortalSession.readExpiry() <= Date.now()) {
+      await global.ZyntraPortalSession.performPortalLogout({ reason: 'session_expired' });
+      throw new Error('Portal session expired.');
+    }
     const userId = state.context.user.id;
     const requests = [
       supabase.from('client_projects').select('*').eq('client_id', userId).eq('archived', false).order('created_at', { ascending: false }),
@@ -39,11 +44,14 @@
       supabase.from('revision_requests').select('*').eq('client_id', userId).order('created_at', { ascending: false }),
       supabase.from('deliverables').select('*').eq('client_id', userId).order('uploaded_at', { ascending: false }),
       supabase.from('invoices').select('*').eq('client_id', userId).order('issue_date', { ascending: false }),
-      supabase.from('portal_notifications').select('*').eq('client_id', userId).order('created_at', { ascending: false })
+      supabase.from('portal_notifications').select('*').eq('client_id', userId).order('created_at', { ascending: false }),
+      supabase.from('client_login_ids').select('login_id,active').eq('user_id', userId).maybeSingle()
     ];
-    const results = await Promise.all(requests);
+    const results = await withRequestTimeout(Promise.all(requests));
+    if (!state.context || (global.ZyntraPortalSession && global.ZyntraPortalSession.readExpiry() <= Date.now())) throw new Error('Portal session expired.');
     if (results.some(result => result.error)) throw new Error('Portal data failed to load.');
-    [state.projects, state.calendar, state.drafts, state.revisions, state.deliverables, state.invoices, state.notifications] = results.map(result => result.data || []);
+    [state.projects, state.calendar, state.drafts, state.revisions, state.deliverables, state.invoices, state.notifications] = results.slice(0, 7).map(result => result.data || []);
+    state.clientLoginId = results[7].data || null;
   }
 
   function renderOverview() {
@@ -97,10 +105,10 @@
   function formatBytes(value) { const bytes = Number(value || 0); if (!bytes) return 'Size unavailable'; const units = ['B','KB','MB','GB']; const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1); return (bytes / Math.pow(1024, index)).toFixed(index ? 1 : 0) + ' ' + units[index]; }
   function renderInvoices() { const grid = document.getElementById('invoices-grid'); grid.replaceChildren(); state.invoices.forEach(invoice => { const card = el('article', 'cp-card'); card.append(badge(invoice.payment_status), el('h3', '', invoice.invoice_number), el('p', 'cp-money', formatMoney(invoice.amount, invoice.currency)), el('p', '', projectName(invoice.project_id) + ' · ' + (invoice.description || 'Invoice')), el('div', 'cp-card-row', 'Issued ' + formatDate(invoice.issue_date) + ' · Due ' + formatDate(invoice.due_date))); if (invoice.payment_date) card.appendChild(el('p', '', 'Paid ' + formatDate(invoice.payment_date))); if (invoice.receipt_storage_path) { const receipt = button('Download Receipt'); receipt.addEventListener('click', async () => { try { global.open(await signedUrl('client-documents', invoice.receipt_storage_path, true), '_blank', 'noopener'); } catch (error) { showError(); } }); card.appendChild(receipt); } grid.appendChild(card); }); if (!grid.childElementCount) grid.appendChild(empty('No invoice records are available.')); }
   function renderNotifications() { const list = document.getElementById('notifications-list'); list.replaceChildren(); state.notifications.forEach(notification => { const card = el('article', 'cp-card cp-notification' + (notification.read ? '' : ' is-unread')); card.append(el('h3', '', notification.title), el('p', '', notification.message), el('div', 'cp-card-row', formatDate(notification.created_at, true))); if (!notification.read) { const read = button('Mark as read'); read.addEventListener('click', async () => { const result = await supabase.from('portal_notifications').update({ read: true }).eq('id', notification.id); if (result.error) showError(); else { notification.read = true; renderNotifications(); renderOverview(); } }); card.appendChild(read); } list.appendChild(card); }); if (!list.childElementCount) list.appendChild(empty('No notifications.')); }
-  function renderProfile() { const profile = state.context.profile; document.getElementById('profile-full-name').value = profile.full_name || ''; document.getElementById('profile-business-name').value = profile.business_name || ''; document.getElementById('profile-phone').value = profile.phone || ''; }
+  function renderProfile() { const profile = state.context.profile; document.getElementById('profile-full-name').value = profile.full_name || ''; document.getElementById('profile-business-name').value = profile.business_name || ''; document.getElementById('profile-phone').value = profile.phone || ''; const mapping=state.clientLoginId; document.getElementById('profile-client-id').value=mapping?mapping.login_id:''; document.getElementById('client-id-current').textContent=mapping?(mapping.login_id+' · '+(mapping.active?'Active':'Disabled')):'No Client ID assigned.'; }
   function renderSupport() { const select = document.getElementById('support-project'); select.replaceChildren(); state.projects.forEach(project => select.appendChild(new Option(project.project_name, project.id))); if (!state.projects.length) select.appendChild(new Option('General support', '')); }
   function openSupport(project) { const selected = project || state.projects.find(item => item.id === document.getElementById('support-project').value); const message = selected ? ['Hello Zyntra Studio,','','I need assistance with my project: ' + selected.project_name + '.','','Client: ' + state.context.profile.full_name,'Project ID: ' + selected.id,'','Please contact me regarding this project.'].join('\n') : 'Hello Zyntra Studio,\n\nI need assistance with my client portal.\n\nClient: ' + state.context.profile.full_name; global.open('https://wa.me/94706004033?text=' + encodeURIComponent(message), '_blank', 'noopener'); }
-  function renderAll() { document.getElementById('overview-welcome').textContent = 'Welcome, ' + (state.context.profile.full_name || 'Client') + '.'; document.getElementById('portal-client-name').textContent = state.context.profile.full_name || 'Client Portal'; document.getElementById('portal-business-name').textContent = state.context.profile.business_name || state.context.user.email; renderOverview(); renderProjects(); populateFilters(); renderCalendar(); renderDrafts(); renderDeliverables(); renderInvoices(); renderNotifications(); renderProfile(); renderSupport(); }
+  function renderAll() { if(global.ZyntraPortalSession&&global.ZyntraPortalSession.readExpiry()<=Date.now())return;document.getElementById('overview-welcome').textContent = 'Welcome, ' + (state.context.profile.full_name || 'Client') + '.'; document.getElementById('portal-client-name').textContent = state.context.profile.full_name || 'Client Portal'; document.getElementById('portal-business-name').textContent = state.context.profile.business_name || state.context.user.email; renderOverview(); renderProjects(); populateFilters(); renderCalendar(); renderDrafts(); renderDeliverables(); renderInvoices(); renderNotifications(); renderProfile(); renderSupport(); }
   async function refresh() { try { await loadData(); renderAll(); } catch (error) { showError(); } }
 
   document.querySelectorAll('[data-view]').forEach(node => node.addEventListener('click', () => showView(node.dataset.view)));
@@ -111,6 +119,7 @@
   document.getElementById('support-whatsapp').addEventListener('click', () => openSupport());
   document.getElementById('mark-all-read').addEventListener('click', async () => { const unread = state.notifications.filter(item => !item.read); if (!unread.length) return; const result = await supabase.from('portal_notifications').update({ read: true }).in('id', unread.map(item => item.id)); if (result.error) showError(); else { unread.forEach(item => { item.read = true; }); renderNotifications(); renderOverview(); } });
   document.getElementById('profile-form').addEventListener('submit', async event => { event.preventDefault(); const status = document.getElementById('profile-status'); const form = event.currentTarget; if (!form.reportValidity()) return; const result = await supabase.rpc('update_my_profile', { new_full_name: document.getElementById('profile-full-name').value.trim(), new_business_name: document.getElementById('profile-business-name').value.trim(), new_phone: document.getElementById('profile-phone').value.trim() }); if (result.error) { status.textContent = auth.safeMessage(result.error, 'Your profile could not be updated.'); status.classList.add('is-error'); } else { status.textContent = 'Profile updated.'; status.classList.remove('is-error'); state.context.profile = result.data; renderProfile(); } });
+  document.getElementById('client-id-form').addEventListener('submit', async event => { event.preventDefault(); const form=event.currentTarget; const input=document.getElementById('profile-client-id'); const status=document.getElementById('client-id-profile-status'); const value=input.value.trim().toUpperCase(); input.value=value; const reserved=['ADMIN','ADMINISTRATOR','ROOT','SUPPORT','ZYNTRA','SYSTEM','CLIENT','LOGIN','NULL']; if(!/^[A-Z0-9-]{5,24}$/.test(value)||reserved.includes(value)){status.textContent='Use 5–24 English letters, numbers or hyphens and avoid reserved names.';status.classList.add('is-error');return;} const button=form.querySelector('button[type="submit"]');button.disabled=true;const result=await supabase.rpc('set_my_client_login_id',{new_login_id:value});button.disabled=false;if(result.error){status.textContent=/unavailable|unique|duplicate/i.test(result.error.message||'')?'That Client ID is unavailable. Choose another.':'Your Client ID could not be updated.';status.classList.add('is-error');return;}state.clientLoginId=result.data;status.textContent='Client ID saved. You can now use it to sign in.';status.classList.remove('is-error');renderProfile(); });
 
-  (async function start() { const loading = document.getElementById('portal-loading'); try { const context = await auth.requireAccess('client'); if (!context) return; state.context = context; auth.watchProtectedSession('client'); await loadData(); loading.remove(); document.querySelectorAll('[data-portal-view]').forEach(node => { node.hidden = true; }); renderAll(); showView(location.hash.slice(1) || 'overview'); } catch (error) { loading.classList.add('cp-access-error'); loading.textContent = auth.safeMessage(error, 'Your portal could not be loaded. Please refresh or contact Zyntra Studio.'); } }());
+  (async function start() { const loading = document.getElementById('portal-loading'); try { const context = await auth.requireAccess('client'); if (!context) return; state.context = context; auth.watchProtectedSession('client'); if(global.ZyntraPortalSession)global.ZyntraPortalSession.registerCleanup(()=>{state.context=null;state.projects=[];state.calendar=[];state.drafts=[];state.revisions=[];state.deliverables=[];state.invoices=[];state.notifications=[];content.hidden=true;closeModal()}); await loadData(); loading.remove(); document.querySelectorAll('[data-portal-view]').forEach(node => { node.hidden = true; }); renderAll(); showView(location.hash.slice(1) || 'overview'); } catch (error) { loading.classList.add('cp-access-error'); loading.textContent = auth.safeMessage(error, 'Your portal could not be loaded. Please refresh or contact Zyntra Studio.'); } }());
 }(window));

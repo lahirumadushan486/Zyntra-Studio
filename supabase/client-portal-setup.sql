@@ -12,6 +12,35 @@ create table if not exists public.profiles (
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 
+create table if not exists public.client_login_ids (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  login_id text not null,
+  active boolean not null default false,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  constraint client_login_ids_format check (
+    login_id = upper(btrim(login_id))
+    and login_id ~ '^[A-Z0-9-]{5,24}$'
+    and login_id <> all(array['ADMIN','ADMINISTRATOR','ROOT','SUPPORT','ZYNTRA','SYSTEM','CLIENT','LOGIN','NULL'])
+  )
+);
+
+create unique index if not exists client_login_ids_normalized_unique
+  on public.client_login_ids ((upper(login_id)));
+
+-- This table is intentionally in public so Edge Functions can use PostgREST,
+-- but RLS plus revoked grants make it unavailable to browser roles.
+create table if not exists public.client_login_rate_limits (
+  key_hash text primary key check (key_hash ~ '^[a-f0-9]{64}$'),
+  attempt_count integer not null default 0 check (attempt_count >= 0),
+  window_started_at timestamptz not null default now(),
+  blocked_until timestamptz,
+  updated_at timestamptz not null default now()
+);
+
+alter table public.client_login_ids enable row level security;
+alter table public.client_login_rate_limits enable row level security;
+
 create table if not exists public.client_projects (
   id uuid primary key default gen_random_uuid(), client_id uuid not null references public.profiles(id) on delete cascade,
   project_name text not null check (char_length(btrim(project_name)) between 1 and 180), service_type text not null default '', description text not null default '',
@@ -98,7 +127,7 @@ begin new.updated_at = now(); return new; end;
 $$;
 
 do $$ declare table_name text; begin
-  foreach table_name in array array['profiles','client_projects','content_calendar','project_drafts','invoices'] loop
+  foreach table_name in array array['profiles','client_login_ids','client_login_rate_limits','client_projects','content_calendar','project_drafts','invoices'] loop
     execute format('drop trigger if exists set_updated_at on public.%I', table_name);
     execute format('create trigger set_updated_at before update on public.%I for each row execute function public.set_updated_at()', table_name);
   end loop;
@@ -109,12 +138,43 @@ returns boolean language sql stable security definer set search_path = pg_catalo
   select exists(select 1 from public.profiles where id = auth.uid() and role = 'admin' and active = true);
 $$;
 
+create or replace function public.normalize_client_login_id(value text)
+returns text language sql immutable set search_path = pg_catalog as $$
+  select upper(btrim(coalesce(value, '')));
+$$;
+
+create or replace function public.is_valid_client_login_id(value text)
+returns boolean language sql immutable set search_path = pg_catalog, public as $$
+  select public.normalize_client_login_id(value) ~ '^[A-Z0-9-]{5,24}$'
+    and public.normalize_client_login_id(value) <> all(array['ADMIN','ADMINISTRATOR','ROOT','SUPPORT','ZYNTRA','SYSTEM','CLIENT','LOGIN','NULL']);
+$$;
+
 create or replace function public.handle_new_portal_user()
 returns trigger language plpgsql security definer set search_path = pg_catalog, public as $$
+declare requested_login_id text;
 begin
   insert into public.profiles(id, full_name, business_name, phone, role, active)
-  values(new.id, coalesce(new.raw_user_meta_data ->> 'full_name',''), coalesce(new.raw_user_meta_data ->> 'business_name',''), coalesce(new.raw_user_meta_data ->> 'phone',''), 'client', true)
+  values(
+    new.id,
+    nullif(left(btrim(coalesce(new.raw_user_meta_data ->> 'full_name','')),120),''),
+    nullif(left(btrim(coalesce(new.raw_user_meta_data ->> 'business_name','')),160),''),
+    nullif(left(btrim(coalesce(new.raw_user_meta_data ->> 'phone','')),40),''),
+    'client',
+    true
+  )
+  -- Never overwrite an existing profile, especially an administrator profile.
   on conflict(id) do nothing;
+
+  requested_login_id := public.normalize_client_login_id(new.raw_user_meta_data ->> 'requested_client_id');
+  if requested_login_id <> '' then
+    if not public.is_valid_client_login_id(requested_login_id) then
+      raise exception 'Invalid requested Client ID';
+    end if;
+    -- The unique index makes this reservation atomic. It remains inactive until
+    -- the owner has a confirmed authenticated session.
+    insert into public.client_login_ids(user_id, login_id, active)
+    values(new.id, requested_login_id, false);
+  end if;
   return new;
 end;
 $$;
@@ -203,6 +263,47 @@ begin
 end;
 $$;
 
+create or replace function public.set_my_client_login_id(new_login_id text)
+returns public.client_login_ids language plpgsql security definer set search_path = pg_catalog, public, auth as $$
+declare normalized text; result public.client_login_ids;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if not exists(select 1 from public.profiles where id=auth.uid() and role='client' and active=true) then
+    raise exception 'Active client access is required';
+  end if;
+  if not exists(select 1 from auth.users where id=auth.uid() and email_confirmed_at is not null) then
+    raise exception 'Email confirmation is required';
+  end if;
+  normalized := public.normalize_client_login_id(new_login_id);
+  if not public.is_valid_client_login_id(normalized) then raise exception 'Invalid Client ID'; end if;
+  begin
+    insert into public.client_login_ids(user_id,login_id,active)
+    values(auth.uid(),normalized,true)
+    on conflict(user_id) do update set login_id=excluded.login_id,active=true
+    returning * into result;
+  exception when unique_violation then
+    raise exception 'Client ID unavailable' using errcode='P0001';
+  end;
+  return result;
+end;
+$$;
+
+create or replace function public.activate_my_client_login_id()
+returns public.client_login_ids language plpgsql security definer set search_path = pg_catalog, public, auth as $$
+declare result public.client_login_ids;
+begin
+  if auth.uid() is null then raise exception 'Authentication required'; end if;
+  if not exists(select 1 from public.profiles where id=auth.uid() and role='client' and active=true) then
+    raise exception 'Active client access is required';
+  end if;
+  if not exists(select 1 from auth.users where id=auth.uid() and email_confirmed_at is not null) then
+    raise exception 'Email confirmation is required';
+  end if;
+  update public.client_login_ids set active=true where user_id=auth.uid() returning * into result;
+  return result;
+end;
+$$;
+
 create or replace function public.approve_own_draft(target_draft_id uuid)
 returns public.project_drafts language plpgsql security definer set search_path = pg_catalog, public as $$
 declare result public.project_drafts;
@@ -232,6 +333,8 @@ do $$ declare table_name text; begin
 end $$;
 
 alter table public.profiles enable row level security;
+alter table public.client_login_ids enable row level security;
+alter table public.client_login_rate_limits enable row level security;
 alter table public.client_projects enable row level security;
 alter table public.content_calendar enable row level security;
 alter table public.project_drafts enable row level security;
@@ -241,13 +344,21 @@ alter table public.invoices enable row level security;
 alter table public.portal_notifications enable row level security;
 alter table public.portal_activity enable row level security;
 
-revoke all on public.profiles, public.client_projects, public.content_calendar, public.project_drafts, public.revision_requests, public.deliverables, public.invoices, public.portal_notifications, public.portal_activity from anon;
+revoke all on public.profiles, public.client_login_ids, public.client_login_rate_limits, public.client_projects, public.content_calendar, public.project_drafts, public.revision_requests, public.deliverables, public.invoices, public.portal_notifications, public.portal_activity from anon;
+revoke all on public.client_login_ids, public.client_login_rate_limits from authenticated;
+grant select,insert,update,delete on public.client_login_ids, public.client_login_rate_limits to service_role;
 grant select,insert,update,delete on public.profiles, public.client_projects, public.content_calendar, public.project_drafts, public.revision_requests, public.deliverables, public.invoices, public.portal_notifications, public.portal_activity to authenticated;
+grant select on public.client_login_ids to authenticated;
 grant usage,select on sequence public.portal_activity_id_seq to authenticated;
 
 drop policy if exists profiles_self_select on public.profiles; create policy profiles_self_select on public.profiles for select to authenticated using(id=auth.uid());
 drop policy if exists profiles_self_update on public.profiles; create policy profiles_self_update on public.profiles for update to authenticated using(id=auth.uid()) with check(id=auth.uid());
 drop policy if exists profiles_admin_all on public.profiles; create policy profiles_admin_all on public.profiles for all to authenticated using(public.is_portal_admin()) with check(public.is_portal_admin());
+
+drop policy if exists client_login_ids_self_select on public.client_login_ids;
+create policy client_login_ids_self_select on public.client_login_ids for select to authenticated using(user_id=auth.uid());
+drop policy if exists client_login_ids_admin_all on public.client_login_ids;
+create policy client_login_ids_admin_all on public.client_login_ids for all to authenticated using(public.is_portal_admin()) with check(public.is_portal_admin());
 
 do $$ declare table_name text; begin
   foreach table_name in array array['client_projects','content_calendar','project_drafts','revision_requests','deliverables','invoices','portal_notifications'] loop
@@ -268,8 +379,8 @@ create policy portal_notifications_client_update on public.portal_notifications 
 drop policy if exists portal_activity_admin_select on public.portal_activity;
 create policy portal_activity_admin_select on public.portal_activity for select to authenticated using(public.is_portal_admin());
 
-revoke execute on function public.is_portal_admin(), public.update_my_profile(text,text,text), public.approve_own_draft(uuid) from public, anon;
-grant execute on function public.is_portal_admin(), public.update_my_profile(text,text,text), public.approve_own_draft(uuid) to authenticated;
+revoke execute on function public.is_portal_admin(), public.normalize_client_login_id(text), public.is_valid_client_login_id(text), public.update_my_profile(text,text,text), public.set_my_client_login_id(text), public.activate_my_client_login_id(), public.approve_own_draft(uuid) from public, anon;
+grant execute on function public.is_portal_admin(), public.update_my_profile(text,text,text), public.set_my_client_login_id(text), public.activate_my_client_login_id(), public.approve_own_draft(uuid) to authenticated;
 
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values
 ('client-drafts','client-drafts',false,52428800,array['image/jpeg','image/png','image/webp','video/mp4','video/webm','application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document']),
@@ -309,3 +420,6 @@ on conflict (id) do update set
   role = excluded.role,
   active = excluded.active,
   updated_at = now();
+
+-- Make newly created or altered API objects visible immediately.
+notify pgrst, 'reload schema';

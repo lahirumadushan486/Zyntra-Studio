@@ -43,7 +43,7 @@
         catch (error) { if (error && error.name === 'AbortError') return; }
       }
       const copied = await copyLink(shareData.url);
-      showToast(copied ? 'Login link copied successfully.' : 'Unable to copy the login link. Please copy it from the address bar.', !copied);
+      showToast(copied ? (button.dataset.copyMessage || 'Login link copied successfully.') : 'Unable to copy the link. Please copy it from the address bar.', !copied);
     });
   });
 }(window));

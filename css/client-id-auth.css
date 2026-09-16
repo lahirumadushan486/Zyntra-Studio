@@ -1,0 +1,28 @@
+.client-register-id-status {
+  min-height: 1em;
+  color: var(--cr-success) !important;
+}
+
+.client-register-id-status.is-error {
+  color: var(--cr-danger) !important;
+}
+
+.client-register-captcha {
+  grid-column: 1 / -1;
+  min-width: 0;
+  min-height: 65px;
+  overflow: hidden;
+}
+
+.client-register-captcha[hidden],
+.client-register-captcha:empty {
+  display: none;
+}
+
+.client-register-captcha iframe {
+  max-width: 100%;
+}
+
+@media (max-width: 620px) {
+  .client-register-captcha { grid-column: auto; }
+}

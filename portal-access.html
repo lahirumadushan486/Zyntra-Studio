@@ -11,6 +11,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="css/portal-access.css">
+  <link rel="stylesheet" href="css/portal-access-client.css">
 </head>
 <body class="portal-access-page">
   <div class="portal-access-ambient" aria-hidden="true"><i></i><i></i><i></i><span></span><span></span><span></span></div>
@@ -29,34 +30,32 @@
       <p class="portal-access-lede">Access your projects, reviews, files and management tools through the correct secure portal.</p>
     </section>
 
-    <section class="portal-access-grid" aria-label="Available portals">
+    <section class="portal-access-grid portal-access-grid--client-first" aria-label="Portal access options">
       <article class="portal-access-card portal-access-card--client">
         <div class="portal-access-card__top">
           <span class="portal-access-card__number">01</span>
           <span class="portal-access-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 21a8 8 0 0 0-16 0"></path><circle cx="12" cy="7" r="4"></circle></svg></span>
         </div>
-        <div class="portal-access-card__copy"><p>Client workspace</p><h2>Client Portal</h2><p>Review project progress, preview drafts, request revisions, view content calendars and download completed files.</p></div>
-        <div class="portal-access-card__actions">
-          <a class="portal-access-primary" href="/portal/login">Client Login <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+        <div class="portal-access-card__copy"><p>Client Workspace</p><h2>Client Portal</h2><p>Access project progress, content calendars, draft reviews, revision requests, payments and completed files.</p></div>
+        <div class="portal-access-client-actions">
+          <div class="portal-access-action-group"><a class="portal-access-primary" href="/portal/login">Client Login <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a></div>
+          <div class="portal-access-action-group"><a class="portal-access-register" href="/portal/register">Register Client <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"></path></svg></a><small>New to the Zyntra Studio Client Portal? Create your secure account.</small></div>
+        </div>
+        <div class="portal-access-share-row">
           <button class="portal-access-share" type="button" data-share-url="https://zyntrastudio.lk/portal/login" data-share-title="Zyntra Studio Client Portal" data-share-text="Use this secure link to access your Zyntra Studio Client Portal." aria-label="Share Client Login" data-tooltip="Share Client Login">
             <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"></path></svg><span>Share Client Login</span>
+          </button>
+          <button class="portal-access-share" type="button" data-share-url="https://zyntrastudio.lk/portal/register" data-share-title="Zyntra Studio Client Registration" data-share-text="Use this secure link to register for the Zyntra Studio Client Portal." data-copy-message="Registration link copied successfully." aria-label="Share Registration Link" data-tooltip="Share Registration Link">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"></path></svg><span>Share Registration Link</span>
           </button>
         </div>
       </article>
 
-      <article class="portal-access-card portal-access-card--admin">
-        <div class="portal-access-card__top">
-          <span class="portal-access-card__number">02</span>
-          <span class="portal-access-card__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-4"></path></svg></span>
-        </div>
-        <div class="portal-access-card__copy"><p>Restricted workspace</p><h2>Admin Panel</h2><p>Secure management access for Zyntra Studio administrators.</p></div>
-        <div class="portal-access-card__actions">
-          <a class="portal-access-primary" href="/admin/login">Admin Login <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
-          <button class="portal-access-share" type="button" data-share-url="https://zyntrastudio.lk/admin/login" data-share-title="Zyntra Studio Admin Login" data-share-text="Secure Zyntra Studio Admin Portal access." aria-label="Share Admin Login" data-tooltip="Share Admin Login">
-            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"></path></svg><span>Share Admin Login</span>
-          </button>
-        </div>
-      </article>
+      <aside class="portal-access-admin" aria-label="Administrator access">
+        <span class="portal-access-admin__icon" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10Z"></path><path d="m9 12 2 2 4-4"></path></svg></span>
+        <div><p>Admin Access</p><h2>Restricted access for Zyntra Studio administrators.</h2></div>
+        <a href="/admin/login">Admin Login <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></a>
+      </aside>
     </section>
 
     <p class="portal-access-security"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="10" width="14" height="10" rx="2"></rect><path d="M8 10V7a4 4 0 0 1 8 0v3"></path></svg>Secure access powered by encrypted authentication. Never share your password with anyone.</p>

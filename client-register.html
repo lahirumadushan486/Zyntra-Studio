@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Register for Client Portal | Zyntra Studio</title>
+  <meta name="description" content="Create a secure Zyntra Studio Client Portal account.">
+  <link rel="icon" href="https://res.cloudinary.com/tqdnopaj/image/upload/v1788956884/1080x1080_logo.jpg">
+  <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/client-register.css">
+  <link rel="stylesheet" href="css/client-id-auth.css">
+  <link rel="stylesheet" href="css/portal-session-timeout.css">
+</head>
+<body class="client-register-page">
+  <div class="client-register-ambient" aria-hidden="true"><i></i><i></i></div>
+  <header class="client-register-header">
+    <a class="client-register-brand" href="index.html" aria-label="Zyntra Studio home"><span><img src="https://res.cloudinary.com/tqdnopaj/image/upload/v1788956884/1080x1080_logo.jpg" alt="" width="32" height="32"></span><strong>Zyntra <em>Studio</em></strong></a>
+    <a class="client-register-back" href="/portal">Back to Portal Access</a>
+  </header>
+
+  <main class="client-register-main">
+    <section class="client-register-card" aria-labelledby="register-title">
+      <div class="client-register-copy">
+        <p class="client-register-eyebrow" id="register-eyebrow">Secure client registration</p>
+        <h1 id="register-title">Register for Client Portal</h1>
+        <p id="register-description">Create your secure Zyntra Studio Client Portal account to review projects, approvals and completed work.</p>
+      </div>
+
+      <div class="client-register-loading" id="register-loading" role="status">Checking your portal session…</div>
+
+      <form class="client-register-form" id="client-register-form" hidden novalidate>
+        <div class="client-register-field"><label for="register-full-name">Full Name</label><input id="register-full-name" name="full_name" type="text" autocomplete="name" maxlength="120" required></div>
+        <div class="client-register-field"><label for="register-business-name">Business Name <small>Optional</small></label><input id="register-business-name" name="business_name" type="text" autocomplete="organization" maxlength="160"></div>
+        <div class="client-register-field"><label for="register-email" id="register-email-label">Email Address</label><input id="register-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" required></div>
+        <div class="client-register-field"><label for="register-client-id">Client ID <small>Optional</small></label><input id="register-client-id" name="client_id" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" minlength="5" maxlength="24" placeholder="ZYN-LAHIRU25" aria-describedby="client-id-help client-id-status"><small id="client-id-help">Optional — You can use this Client ID instead of your email when signing in.</small><small id="client-id-status" class="client-register-id-status" role="status"></small></div>
+        <div class="client-register-field"><label for="register-phone">Phone Number <small>Optional</small></label><input id="register-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40"></div>
+        <div class="client-register-field client-register-public"><label for="register-password">Password</label><span class="client-register-password"><input id="register-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required><button type="button" data-password-toggle="register-password" aria-label="Show password">Show</button></span><div class="client-register-strength" aria-hidden="true"><i id="password-strength-bar"></i></div><small id="password-guidance">Use at least 8 characters with upper and lowercase letters, a number and a symbol.</small></div>
+        <div class="client-register-field client-register-public"><label for="register-confirm-password">Confirm Password</label><span class="client-register-password"><input id="register-confirm-password" name="confirm_password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required><button type="button" data-password-toggle="register-confirm-password" aria-label="Show password confirmation">Show</button></span></div>
+        <label class="client-register-terms client-register-public"><input id="register-terms" name="terms" type="checkbox" required><span>I accept the Portal Terms and understand that portal access is for authorized Zyntra Studio clients.</span></label>
+        <div id="register-captcha" class="client-register-captcha client-register-public" aria-label="Security verification"></div>
+        <button class="client-register-submit" id="register-submit" type="submit"><span id="register-submit-label">Register Client</span><i aria-hidden="true"></i></button>
+        <p class="client-register-status" id="register-status" role="status" aria-live="polite"></p>
+      </form>
+
+      <section class="client-register-session" id="client-session-message" hidden aria-live="polite">
+        <h2>You are already signed in as a Client.</h2>
+        <p>Open your current portal, or sign out before registering a different account.</p>
+        <div><a class="client-register-submit" href="client-portal.html">Open Client Portal</a><button class="client-register-secondary" id="logout-register" type="button">Logout and Register Another Account</button></div>
+      </section>
+
+      <a class="client-register-login-link" id="register-login-link" href="client-login.html">Already registered? Client Login</a>
+      <a class="client-register-dashboard-link" id="register-dashboard-link" href="admin-dashboard.html" hidden>Return to Admin Dashboard</a>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="js/supabase-config.js"></script>
+  <script src="js/portal-session-timeout.js"></script>
+  <script src="js/client-auth.js"></script>
+  <script src="https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit" async defer></script>
+  <script src="js/captcha.js"></script>
+  <script src="js/client-register.js"></script>
+</body>
+</html>

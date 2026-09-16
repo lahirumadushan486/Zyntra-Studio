@@ -1,0 +1,1 @@
+.cp-alert[data-module-error]{display:flex;align-items:center;justify-content:space-between;gap:14px;margin:12px 0}.cp-alert[data-module-error] .cp-button{flex:0 0 auto}@media(max-width:520px){.cp-alert[data-module-error]{align-items:stretch;flex-direction:column}.cp-alert[data-module-error] .cp-button{width:100%}}

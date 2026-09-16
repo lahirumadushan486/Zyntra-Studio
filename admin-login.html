@@ -4,7 +4,7 @@
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="robots" content="noindex,nofollow">
   <title>Admin Sign In | Zyntra Studio</title><meta name="description" content="Secure Zyntra Studio administrator sign in."><link rel="icon" href="data:,">
   <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/client-portal.css">
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet"><link rel="stylesheet" href="css/client-portal.css"><link rel="stylesheet" href="css/portal-session-timeout.css">
 </head>
 <body class="client-login-page" data-login-role="admin">
   <main class="cp-login-shell">
@@ -15,7 +15,14 @@
         <label class="cp-field"><span>Email address</span><input id="login-email" type="email" autocomplete="email" required></label>
         <label class="cp-field"><span>Password</span><span class="cp-password-field"><input id="login-password" type="password" autocomplete="current-password" minlength="8" required><button id="toggle-password" type="button" aria-label="Show password">Show</button></span></label>
         <button id="login-submit" class="cp-button cp-button--primary" type="submit"><span data-button-label>Sign In</span><i class="cp-spinner" aria-hidden="true"></i></button>
-        <button id="forgot-password" class="cp-text-button" type="button">Forgot Password?</button><p id="login-status" class="cp-form-status" role="status" aria-live="polite"></p>
+        <button id="forgot-password" class="cp-text-button" type="button">Forgot Password?</button><p id="login-status" class="cp-form-status" role="status" aria-live="polite"></p><a id="role-help-link" class="cp-role-help" hidden></a>
+      </form>
+      <form id="password-request-form" class="cp-form" hidden novalidate>
+        <p class="cp-reset-intro">Enter the email address connected to your account. Password reset links cannot be sent to a Client ID.</p>
+        <label class="cp-field"><span>Registered email address</span><input id="reset-email" type="email" autocomplete="email" inputmode="email" maxlength="254" required></label>
+        <button id="password-request-submit" class="cp-button cp-button--primary" type="submit">Send Reset Link</button>
+        <button id="password-request-cancel" class="cp-text-button" type="button">Back to Sign In</button>
+        <p id="password-request-status" class="cp-form-status" role="status" aria-live="polite"></p>
       </form>
       <form id="password-reset-form" class="cp-form" hidden novalidate>
         <p class="cp-reset-intro">Choose a new password for your portal account.</p>
@@ -27,6 +34,6 @@
     </section>
   </main>
   <div class="portal-share-toast" data-share-toast role="status" aria-live="polite"></div>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/client-auth.js"></script><script src="js/login.js"></script><script src="js/portal-share.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script><script src="js/supabase-config.js"></script><script src="js/portal-session-timeout.js"></script><script src="js/client-auth.js"></script><script src="js/login.js"></script><script src="js/portal-share.js"></script>
 </body>
 </html>
