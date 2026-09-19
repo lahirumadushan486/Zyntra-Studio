@@ -73,6 +73,7 @@ supabase login
 supabase link --project-ref mdtzjtirfzpimwwbfczk
 supabase functions deploy invite-client
 supabase functions deploy manage-client-login-id
+supabase functions deploy manage-client-profile
 supabase functions deploy login-with-client-id --no-verify-jwt
 supabase functions deploy register-client --no-verify-jwt
 ```
@@ -83,8 +84,10 @@ key must remain there and must never be copied into HTML or browser JavaScript.
 The two public functions deliberately disable the gateway JWT requirement
 because logged-out users call them. They enforce exact Origin allow-lists,
 JSON-only requests, Turnstile verification and persistent database rate
-limiting themselves. `manage-client-login-id` and `invite-client` retain JWT
-verification and independently verify an active `profiles.role = 'admin'`.
+limiting themselves. `manage-client-login-id`, `manage-client-profile`, and
+`invite-client` retain JWT verification and independently verify an active
+`profiles.role = 'admin'`. The Admin Clients table reads its combined profile,
+Auth email, and canonical Client ID data through `manage-client-profile`.
 
 After updating the SQL function in `client-portal-setup.sql`, run the complete
 SQL file again in the Supabase SQL Editor. It is idempotent. The Auth trigger
@@ -118,7 +121,17 @@ still renew them, so it is not a substitute for this fixed application timer.
 Review that project-wide setting separately before changing it because it
 affects every Supabase-authenticated feature.
 
-The Admin dashboard now loads each module independently. Client ID reads use
-admin RLS directly, while all Client ID mutations still require the protected
-`manage-client-login-id` function. Run the complete SQL setup again after this
-update; its final `notify pgrst, 'reload schema'` refreshes the API schema cache.
+The Admin dashboard now loads each module independently. `auth.users.id` is the
+canonical identity everywhere: it equals `profiles.id`,
+`client_login_ids.user_id`, and every portal table's `client_id`. The Admin
+Edit Client modal sends profile, account-status, and Client ID changes to the
+protected `manage-client-profile` function, which executes one atomic database
+transaction and writes audit activity. Clients may view and copy their own
+Client ID, but only an active administrator can assign, replace, disable, or
+reactivate it.
+
+If an older deployment has `profiles.client_id`, rerunning the SQL safely
+copies valid, unique values into `client_login_ids`; duplicates are reported as
+SQL notices for manual review. The legacy column is retained and is not used as
+an authoritative source. Run the complete SQL setup again after this update;
+its final `notify pgrst, 'reload schema'` refreshes the API schema cache.

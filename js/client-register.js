@@ -36,6 +36,12 @@
     status.classList.toggle('is-error', Boolean(isError));
   }
 
+  function signalClientChange() {
+    try {
+      global.localStorage.setItem('zyntra_portal_clients_changed', String(Date.now()));
+    } catch (_error) { /* cross-tab refresh is best effort */ }
+  }
+
   async function edgeErrorMessage(result, fallback) {
     if (result && result.data && result.data.error) return result.data.error;
     try {
@@ -154,6 +160,7 @@
     const result = await supabase.functions.invoke('register-client', { body: { email: payload.email, password: payload.password, fullName: payload.fullName, businessName: payload.businessName, phone: payload.phone, clientId: payload.clientId || null, captchaToken: captchaToken } });
     captcha.reset('register-captcha');
     if (result.error || !result.data || result.data.success !== true) throw new Error(await edgeErrorMessage(result, 'Registration failed.'));
+    signalClientChange();
     form.reset();
     strengthBar.style.width = '0';
     clientIdStatus.textContent = '';
@@ -174,8 +181,9 @@
       body: { email: payload.email, full_name: payload.fullName, business_name: payload.businessName, phone: payload.phone, client_login_id: payload.clientId || null }
     });
     if (result.error || !result.data || result.data.success !== true) throw new Error(await edgeErrorMessage(result, 'Invitation failed.'));
+    signalClientChange();
     form.reset();
-    showStatus('Client invitation sent successfully.', false);
+    showStatus(result.data.invitationSent === false ? 'Existing client account repaired successfully. No duplicate invitation was sent.' : 'Client invitation sent successfully.', false);
     dashboardLink.hidden = false;
   }
 

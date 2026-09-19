@@ -20,6 +20,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 <link rel="stylesheet" href="css/package-chat.css">
+<link rel="stylesheet" href="css/custom-package-builder.css">
 <script type="application/ld+json">
 {
   "@context": "https://schema.org",
@@ -550,6 +551,129 @@
     </div>
   </section>
 
+  <!-- Build Your Own Package calculator -->
+  <section class="section" id="custom-package-builder" aria-labelledby="custom-package-title">
+    <div class="section-inner custom-package-builder__inner">
+      <header class="custom-package-builder__header reveal">
+        <p class="eyebrow">Flexible content planning</p>
+        <h2 id="custom-package-title">Build Your Own Package</h2>
+        <p class="custom-package-builder__sinhala" lang="si">ඔබේ Business එකට ගැලපෙන Package එක ඔබම හදාගන්න</p>
+        <p>Posts, videos සහ අවශ්‍ය නම් social media management තෝරන්න. ඔබේ package එකේ මුළු මිල පහතින් බලන්න.</p>
+      </header>
+
+      <div class="custom-package-builder__panel reveal">
+        <form class="custom-package-builder__form" id="custom-package-form" novalidate>
+          <fieldset class="custom-package-builder__group custom-package-builder__management">
+            <legend>Optional Social Media Management</legend>
+            <label class="custom-package-builder__toggle" for="custom-management-enabled">
+              <input type="checkbox" id="custom-management-enabled">
+              <span class="custom-package-builder__toggle-track" aria-hidden="true"><span></span></span>
+              <span>Add Social Media Management</span>
+            </label>
+
+            <div class="custom-package-builder__platforms" id="custom-platforms" hidden>
+              <p>Select at least one platform</p>
+              <div class="custom-package-builder__platform-grid">
+                <label class="custom-package-builder__platform">
+                  <input type="checkbox" name="custom-platform" value="Facebook">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.4 8.4V6.9c0-.7.5-.9 1-.9H18V2.2l-3.5-.2c-3.5 0-5.7 2.1-5.7 6v2.5H6v4.2h2.8V22h4.4v-7.3h3.6l.6-4.2h-4.2V8.8c0-.3.3-.4 1.2-.4Z"></path></svg>
+                  <span>Facebook</span>
+                </label>
+                <label class="custom-package-builder__platform">
+                  <input type="checkbox" name="custom-platform" value="Instagram">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5"></rect><circle cx="12" cy="12" r="4"></circle><circle cx="17.5" cy="6.5" r="1"></circle></svg>
+                  <span>Instagram</span>
+                </label>
+                <label class="custom-package-builder__platform">
+                  <input type="checkbox" name="custom-platform" value="TikTok">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M14.2 3v11.2a4.7 4.7 0 1 1-4-4.6v3.5a1.7 1.7 0 1 0 1 1.5V3h3Zm0 0c.5 2.9 2.1 4.4 4.8 4.7v3.4c-2-.1-3.6-.8-4.8-1.8"></path></svg>
+                  <span>TikTok</span>
+                </label>
+                <label class="custom-package-builder__platform">
+                  <input type="checkbox" name="custom-platform" value="YouTube">
+                  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M21 8.1a3 3 0 0 0-2.1-2.2C17 5.4 12 5.4 12 5.4s-5 0-6.9.5A3 3 0 0 0 3 8.1a31.5 31.5 0 0 0 0 7.8 3 3 0 0 0 2.1 2.2c1.9.5 6.9.5 6.9.5s5 0 6.9-.5a3 3 0 0 0 2.1-2.2 31.5 31.5 0 0 0 0-7.8Z"></path><path d="m10 9 5 3-5 3Z"></path></svg>
+                  <span>YouTube</span>
+                </label>
+              </div>
+              <ul class="custom-package-builder__included">
+                <li>Content scheduling</li><li>Page maintenance</li><li>Ad boosting support</li>
+              </ul>
+            </div>
+          </fieldset>
+
+          <fieldset class="custom-package-builder__group">
+            <legend>Choose your content</legend>
+            <div class="custom-package-builder__service-list">
+              <div class="custom-package-builder__service">
+                <div><h3>Static Posts</h3><p>Progressive pricing applies from post 6 onward.</p></div>
+                <div class="custom-package-builder__quantity" data-quantity-control>
+                  <button type="button" data-quantity-action="decrease" aria-label="Decrease static posts">−</button>
+                  <label><span class="sr-only">Static post quantity</span><input id="custom-post-count" inputmode="numeric" type="number" min="0" max="999" step="1" value="0"></label>
+                  <button type="button" data-quantity-action="increase" aria-label="Increase static posts">+</button>
+                </div>
+              </div>
+              <div class="custom-package-builder__service">
+                <div><h3>Professional Videos <span>up to 25 seconds</span></h3><p>Text animation, colour grading, professional editing and a social-media-ready final video.</p></div>
+                <div class="custom-package-builder__quantity" data-quantity-control>
+                  <button type="button" data-quantity-action="decrease" aria-label="Decrease 25-second videos">−</button>
+                  <label><span class="sr-only">25-second professional video quantity</span><input id="custom-video-25-count" inputmode="numeric" type="number" min="0" max="999" step="1" value="0"></label>
+                  <button type="button" data-quantity-action="increase" aria-label="Increase 25-second videos">+</button>
+                </div>
+              </div>
+              <div class="custom-package-builder__service">
+                <div><h3>Professional Videos <span>up to 50 seconds</span></h3><p>Longer-form professional editing, colour grading and social-media-ready delivery.</p></div>
+                <div class="custom-package-builder__quantity" data-quantity-control>
+                  <button type="button" data-quantity-action="decrease" aria-label="Decrease 50-second videos">−</button>
+                  <label><span class="sr-only">50-second professional video quantity</span><input id="custom-video-50-count" inputmode="numeric" type="number" min="0" max="999" step="1" value="0"></label>
+                  <button type="button" data-quantity-action="increase" aria-label="Increase 50-second videos">+</button>
+                </div>
+              </div>
+              <div class="custom-package-builder__service custom-package-builder__service--addon">
+                <div><h3>Simple Story Videos <span>up to 30 seconds</span></h3><p>Simple editing suited to story-style content. Add this to a posts or professional-video order.</p></div>
+                <div class="custom-package-builder__quantity" data-quantity-control>
+                  <button type="button" data-quantity-action="decrease" aria-label="Decrease story videos">−</button>
+                  <label><span class="sr-only">Story video quantity</span><input id="custom-story-count" inputmode="numeric" type="number" min="0" max="999" step="1" value="0"></label>
+                  <button type="button" data-quantity-action="increase" aria-label="Increase story videos">+</button>
+                </div>
+              </div>
+            </div>
+          </fieldset>
+
+          <div class="custom-package-builder__summary">
+            <div><p class="custom-package-builder__total-label" id="custom-package-total-label">PACKAGE TOTAL</p><output class="custom-package-builder__total" id="custom-package-total" aria-live="polite">Rs. 0</output></div>
+            <p class="custom-package-builder__notice" id="custom-package-notice">Advertising spend is not included in this content package.</p>
+          </div>
+          <p class="custom-package-builder__validation" id="custom-package-validation" role="status" aria-live="polite">Choose at least one static post or professional video to create a package.</p>
+          <button class="btn btn-primary custom-package-builder__create" id="custom-package-create" type="submit" disabled>Create My Package</button>
+        </form>
+      </div>
+
+      <div class="custom-package-builder__result" id="custom-package-result" hidden>
+        <article class="custom-package-card" id="custom-package-card" aria-labelledby="custom-package-card-title">
+          <div class="custom-package-card__glow" aria-hidden="true"></div>
+          <header class="custom-package-card__header">
+            <span class="custom-package-card__brand" data-brand-logo><span class="brand-logo-box"><img class="brand-logo-image" alt="Zyntra Studio logo" width="42" height="42" loading="lazy" crossorigin="anonymous" hidden><span class="brand-logo-fallback" aria-hidden="true">ZS</span></span><span>ZYNTRA STUDIO</span></span>
+            <span class="custom-package-card__tag">CUSTOM QUOTATION</span>
+          </header>
+          <div class="custom-package-card__body">
+            <p class="custom-package-card__eyebrow">Built for your brand</p>
+            <h3 id="custom-package-card-title">Your Custom Package</h3>
+            <div class="custom-package-card__platforms" id="custom-card-platforms" hidden></div>
+            <ul class="custom-package-card__items" id="custom-card-items"></ul>
+            <div class="custom-package-card__management" id="custom-card-management" hidden><strong>Social Media Management</strong><span>Content scheduling · Page maintenance · Ad boosting support</span></div>
+          </div>
+          <footer class="custom-package-card__footer">
+            <div class="custom-package-card__price"><span id="custom-card-total-label">PACKAGE TOTAL</span><strong id="custom-card-total">Rs. 0</strong></div>
+            <p id="custom-card-notice">Advertising spend is not included in this content package.</p>
+            <div class="custom-package-card__contact"><span>Call / WhatsApp: 070 600 4033</span><span>www.zyntrastudio.lk</span></div>
+          </footer>
+        </article>
+        <button class="btn btn-outline custom-package-builder__download" id="custom-package-download" type="button">Download Package Image</button>
+        <p class="custom-package-builder__download-status" id="custom-package-download-status" role="status" aria-live="polite"></p>
+      </div>
+    </div>
+  </section>
+
   <!-- Detailed services -->
   <section class="section alt-bg" id="services-full">
     <div class="section-inner">
@@ -1064,5 +1188,7 @@
 
 <script src="script.js"></script>
 <script src="js/package-chat.js"></script>
+<script src="assets/vendor/html2canvas.min.js"></script>
+<script src="js/custom-package-builder.js"></script>
 </body>
 </html>

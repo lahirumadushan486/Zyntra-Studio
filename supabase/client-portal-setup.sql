@@ -28,6 +28,21 @@ create table if not exists public.client_login_ids (
 create unique index if not exists client_login_ids_normalized_unique
   on public.client_login_ids ((upper(login_id)));
 
+-- Give PostgREST an explicit profiles -> client_login_ids one-to-one
+-- relationship while retaining the Auth-user cascade already on user_id.
+do $$ begin
+  if not exists(select 1 from pg_constraint where conname='client_login_ids_profile_fk' and conrelid='public.client_login_ids'::regclass) then
+    alter table public.client_login_ids
+      add constraint client_login_ids_profile_fk foreign key(user_id)
+      references public.profiles(id) on delete cascade not valid;
+  end if;
+  begin
+    alter table public.client_login_ids validate constraint client_login_ids_profile_fk;
+  exception when foreign_key_violation then
+    raise notice 'client_login_ids_profile_fk remains NOT VALID because legacy orphan rows need manual review.';
+  end;
+end $$;
+
 -- This table is intentionally in public so Edge Functions can use PostgREST,
 -- but RLS plus revoked grants make it unavailable to browser roles.
 create table if not exists public.client_login_rate_limits (
@@ -304,6 +319,87 @@ begin
 end;
 $$;
 
+create or replace function public.admin_update_client_profile(
+  target_user_id uuid,
+  new_full_name text,
+  new_business_name text,
+  new_phone text,
+  new_client_login_id text,
+  new_client_id_active boolean,
+  new_account_active boolean
+)
+returns jsonb language plpgsql security definer set search_path = pg_catalog, public as $$
+declare
+  old_profile public.profiles;
+  updated_profile public.profiles;
+  old_mapping public.client_login_ids;
+  updated_mapping public.client_login_ids;
+  normalized_login_id text;
+begin
+  if auth.uid() is null or not public.is_portal_admin() then
+    raise exception 'Administrator permission required' using errcode='42501';
+  end if;
+  select * into old_profile from public.profiles where id=target_user_id and role='client' for update;
+  if old_profile.id is null then raise exception 'Client profile not found' using errcode='P0002'; end if;
+  if char_length(btrim(coalesce(new_full_name,''))) not between 1 and 120 then raise exception 'Invalid full name' using errcode='22023'; end if;
+  select * into old_mapping from public.client_login_ids where user_id=target_user_id for update;
+  normalized_login_id := public.normalize_client_login_id(new_client_login_id);
+  if normalized_login_id <> '' and not public.is_valid_client_login_id(normalized_login_id) then
+    raise exception 'Invalid Client ID' using errcode='22023';
+  end if;
+
+  update public.profiles set
+    full_name=btrim(new_full_name),
+    business_name=nullif(left(btrim(coalesce(new_business_name,'')),160),''),
+    phone=nullif(left(btrim(coalesce(new_phone,'')),40),''),
+    active=coalesce(new_account_active,active)
+  where id=target_user_id and role='client'
+  returning * into updated_profile;
+
+  if normalized_login_id <> '' then
+    begin
+      insert into public.client_login_ids(user_id,login_id,active)
+      values(target_user_id,normalized_login_id,coalesce(new_client_id_active,true))
+      on conflict(user_id) do update set login_id=excluded.login_id,active=excluded.active
+      returning * into updated_mapping;
+    exception when unique_violation then
+      raise exception 'Client ID is already in use' using errcode='23505';
+    end;
+  else
+    updated_mapping := old_mapping;
+  end if;
+
+  if old_profile.full_name is distinct from updated_profile.full_name
+    or old_profile.business_name is distinct from updated_profile.business_name
+    or old_profile.phone is distinct from updated_profile.phone then
+    insert into public.portal_activity(actor_id,action,entity_type,entity_id,details)
+    values(auth.uid(),'Client profile updated','client_profile',target_user_id::text,'Contact profile fields updated');
+  end if;
+  if old_profile.active is distinct from updated_profile.active then
+    insert into public.portal_activity(actor_id,action,entity_type,entity_id,details)
+    values(auth.uid(),case when updated_profile.active then 'Account reactivated' else 'Account deactivated' end,'client_profile',target_user_id::text,'Portal account status changed');
+  end if;
+  if old_mapping.user_id is null and updated_mapping.user_id is not null then
+    insert into public.portal_activity(actor_id,action,entity_type,entity_id,details)
+    values(auth.uid(),'Client ID assigned','client_login_id',target_user_id::text,'Client login identifier assigned');
+  elsif old_mapping.login_id is distinct from updated_mapping.login_id then
+    insert into public.portal_activity(actor_id,action,entity_type,entity_id,details)
+    values(auth.uid(),'Client ID changed','client_login_id',target_user_id::text,'Client login identifier changed');
+  end if;
+  if old_mapping.user_id is not null and old_mapping.active is distinct from updated_mapping.active then
+    insert into public.portal_activity(actor_id,action,entity_type,entity_id,details)
+    values(auth.uid(),case when updated_mapping.active then 'Client ID reactivated' else 'Client ID disabled' end,'client_login_id',target_user_id::text,'Client login identifier status changed');
+  end if;
+
+  return jsonb_build_object(
+    'id',updated_profile.id,'full_name',updated_profile.full_name,'business_name',updated_profile.business_name,
+    'phone',updated_profile.phone,'role',updated_profile.role,'active',updated_profile.active,
+    'created_at',updated_profile.created_at,'updated_at',updated_profile.updated_at,
+    'client_id',updated_mapping.login_id,'client_id_active',updated_mapping.active
+  );
+end;
+$$;
+
 create or replace function public.approve_own_draft(target_draft_id uuid)
 returns public.project_drafts language plpgsql security definer set search_path = pg_catalog, public as $$
 declare result public.project_drafts;
@@ -379,8 +475,9 @@ create policy portal_notifications_client_update on public.portal_notifications 
 drop policy if exists portal_activity_admin_select on public.portal_activity;
 create policy portal_activity_admin_select on public.portal_activity for select to authenticated using(public.is_portal_admin());
 
-revoke execute on function public.is_portal_admin(), public.normalize_client_login_id(text), public.is_valid_client_login_id(text), public.update_my_profile(text,text,text), public.set_my_client_login_id(text), public.activate_my_client_login_id(), public.approve_own_draft(uuid) from public, anon;
-grant execute on function public.is_portal_admin(), public.update_my_profile(text,text,text), public.set_my_client_login_id(text), public.activate_my_client_login_id(), public.approve_own_draft(uuid) to authenticated;
+revoke execute on function public.is_portal_admin(), public.normalize_client_login_id(text), public.is_valid_client_login_id(text), public.update_my_profile(text,text,text), public.set_my_client_login_id(text), public.activate_my_client_login_id(), public.admin_update_client_profile(uuid,text,text,text,text,boolean,boolean), public.approve_own_draft(uuid) from public, anon;
+revoke execute on function public.set_my_client_login_id(text) from authenticated;
+grant execute on function public.is_portal_admin(), public.update_my_profile(text,text,text), public.activate_my_client_login_id(), public.admin_update_client_profile(uuid,text,text,text,text,boolean,boolean), public.approve_own_draft(uuid) to authenticated;
 
 insert into storage.buckets(id,name,public,file_size_limit,allowed_mime_types) values
 ('client-drafts','client-drafts',false,52428800,array['image/jpeg','image/png','image/webp','video/mp4','video/webm','application/pdf','application/msword','application/vnd.openxmlformats-officedocument.wordprocessingml.document']),
@@ -420,6 +517,39 @@ on conflict (id) do update set
   role = excluded.role,
   active = excluded.active,
   updated_at = now();
+
+-- Data-preserving compatibility migration for deployments that previously
+-- added profiles.client_id. Unique valid values are copied, but the legacy
+-- column is deliberately retained for manual review and is never authoritative.
+do $$
+declare migrated_count integer := 0; conflict_count integer := 0;
+begin
+  if exists(select 1 from information_schema.columns where table_schema='public' and table_name='profiles' and column_name='client_id') then
+    execute $migration$
+      with candidates as (
+        select p.id, upper(btrim(p.client_id::text)) as normalized_id,
+          count(*) over(partition by upper(btrim(p.client_id::text))) as duplicate_count
+        from public.profiles p where p.client_id is not null and btrim(p.client_id::text) <> ''
+      )
+      insert into public.client_login_ids(user_id,login_id,active)
+      select c.id,c.normalized_id,true from candidates c
+      where c.duplicate_count=1
+        and c.normalized_id ~ '^[A-Z0-9-]{5,24}$'
+        and c.normalized_id <> all(array['ADMIN','ADMINISTRATOR','ROOT','SUPPORT','ZYNTRA','SYSTEM','CLIENT','LOGIN','NULL'])
+        and not exists(select 1 from public.client_login_ids x where x.user_id=c.id or upper(x.login_id)=c.normalized_id)
+      on conflict do nothing
+    $migration$;
+    get diagnostics migrated_count = row_count;
+    execute $conflicts$
+      select count(*) from (
+        select upper(btrim(client_id::text)) normalized_id from public.profiles
+        where client_id is not null and btrim(client_id::text) <> ''
+        group by upper(btrim(client_id::text)) having count(*) > 1
+      ) duplicate_ids
+    $conflicts$ into conflict_count;
+    raise notice 'Legacy profiles.client_id migration copied % rows; % duplicate ID groups require manual review. The legacy column was not removed.', migrated_count, conflict_count;
+  end if;
+end $$;
 
 -- Make newly created or altered API objects visible immediately.
 notify pgrst, 'reload schema';

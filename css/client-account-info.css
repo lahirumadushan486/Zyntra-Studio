@@ -1,0 +1,11 @@
+.cp-account-panel{align-self:start}
+.cp-account-note{margin:-4px 0 18px;color:var(--cp-muted);font-size:.78rem;line-height:1.65}
+.cp-account-list{display:grid;gap:0;margin:0}
+.cp-account-list>div{display:grid;grid-template-columns:minmax(100px,.42fr) minmax(0,1fr);gap:14px;padding:12px 0;border-top:1px solid rgba(116,153,255,.12)}
+.cp-account-list dt{color:#8291a9;font-size:.67rem;font-weight:800;letter-spacing:.04em;text-transform:uppercase}
+.cp-account-list dd{display:flex;min-width:0;align-items:center;justify-content:space-between;gap:8px;margin:0;color:#e5edf8;font-size:.76rem;overflow-wrap:anywhere}
+.cp-account-status{display:inline-flex;padding:4px 8px;border:1px solid rgba(113,229,189,.28);border-radius:99px;color:#9af0d0;background:rgba(113,229,189,.06);font-size:.61rem;font-weight:800;text-transform:uppercase}
+.cp-account-status.is-disabled{border-color:rgba(255,131,152,.28);color:#ffabb9;background:rgba(255,131,152,.06)}
+.cp-copy-account-id{min-height:32px;padding:5px 10px;border:1px solid rgba(84,216,255,.25);border-radius:8px;color:#9ce8ff;background:rgba(84,216,255,.06);font-size:.65rem;font-weight:800;cursor:pointer}
+.cp-copy-account-id:hover{border-color:rgba(84,216,255,.5);background:rgba(84,216,255,.12)}
+@media(max-width:520px){.cp-account-list>div{grid-template-columns:1fr;gap:5px}.cp-account-list dd{align-items:flex-start}}
