@@ -7,13 +7,16 @@
   var PRICING = Object.freeze({
     managementFirstPlatform: 5000,
     managementAdditionalPlatform: 500,
-    postFirstFive: 1000,
-    postAfterFive: 800,
-    video25: 1800,
+    postFirstTen: 1000,
+    postAfterTen: 800,
+    video25: 2000,
     video50: 2500,
     story: 1400,
     maximumQuantity: 999
   });
+  var EXPORT_WIDTH = 900;
+  var EXPORT_SCALE = 2;
+  var EXPORT_LOGO_URL = 'assets/zyntra-studio-logo.jpg';
 
   var form = root.querySelector('#custom-package-form');
   var managementToggle = root.querySelector('#custom-management-enabled');
@@ -67,7 +70,7 @@
     var management = managementToggle.checked;
     var mainContentCount = quantities.posts + quantities.video25 + quantities.video50;
     var managementTotal = management && selectedPlatforms.length ? PRICING.managementFirstPlatform + Math.max(selectedPlatforms.length - 1, 0) * PRICING.managementAdditionalPlatform : 0;
-    var postTotal = Math.min(quantities.posts, 5) * PRICING.postFirstFive + Math.max(quantities.posts - 5, 0) * PRICING.postAfterFive;
+    var postTotal = Math.min(quantities.posts, 10) * PRICING.postFirstTen + Math.max(quantities.posts - 10, 0) * PRICING.postAfterTen;
     var total = managementTotal + postTotal + quantities.video25 * PRICING.video25 + quantities.video50 * PRICING.video50 + quantities.stories * PRICING.story;
     var valid = quantitiesValid && mainContentCount > 0 && (!management || selectedPlatforms.length > 0);
     var message = 'Your package is ready to create.';
@@ -168,11 +171,11 @@
     result.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   });
 
-  function waitForCardAssets() {
+  function waitForCardAssets(scope) {
     var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
-    var images = Array.prototype.slice.call(card.querySelectorAll('img'));
+    var images = Array.prototype.slice.call(scope.querySelectorAll('img'));
     var imagesReady = Promise.all(images.map(function (image) {
-      if (image.complete) return Promise.resolve();
+      if (image.complete && image.naturalWidth > 0) return Promise.resolve();
       return new Promise(function (resolve) {
         image.addEventListener('load', resolve, { once: true });
         image.addEventListener('error', resolve, { once: true });
@@ -181,22 +184,63 @@
     return Promise.all([fontsReady, imagesReady]);
   }
 
+  function createExportCard() {
+    var host = document.createElement('div');
+    var exportCard = card.cloneNode(true);
+    var logo = exportCard.querySelector('.brand-logo-image');
+    var fallback = exportCard.querySelector('.brand-logo-fallback');
+    host.className = 'custom-package-export-host';
+    host.setAttribute('aria-hidden', 'true');
+    exportCard.classList.add('custom-package-card--export');
+    exportCard.removeAttribute('id');
+    exportCard.removeAttribute('aria-labelledby');
+    exportCard.querySelectorAll('[id]').forEach(function (element) { element.removeAttribute('id'); });
+    if (logo) {
+      logo.removeAttribute('crossorigin');
+      logo.hidden = false;
+      logo.src = EXPORT_LOGO_URL;
+      logo.addEventListener('error', function () {
+        logo.hidden = true;
+        if (fallback) fallback.hidden = false;
+      }, { once: true });
+    }
+    host.appendChild(exportCard);
+    root.appendChild(host);
+    return waitForCardAssets(exportCard).then(function () {
+      return new Promise(function (resolve) {
+        window.requestAnimationFrame(function () {
+          window.requestAnimationFrame(function () { resolve({ host: host, card: exportCard }); });
+        });
+      });
+    }).catch(function (error) {
+      host.remove();
+      throw error;
+    });
+  }
+
   downloadButton.addEventListener('click', function () {
     var state = update();
     if (!state.valid || !hasGeneratedCard) return;
     updateCard(state);
     downloadButton.disabled = true;
     downloadStatus.textContent = 'Preparing your high-quality package image…';
-    waitForCardAssets().then(function () {
+    var exportRender;
+    createExportCard().then(function (render) {
+      exportRender = render;
       if (typeof window.html2canvas !== 'function') throw new Error('The image export library did not load. Please refresh and try again.');
-      return window.html2canvas(card, {
+      var exportHeight = Math.ceil(render.card.getBoundingClientRect().height);
+      return window.html2canvas(render.card, {
         backgroundColor: null,
-        scale: Math.max(2, Math.min(window.devicePixelRatio || 1, 3)),
+        scale: EXPORT_SCALE,
         useCORS: true,
         logging: false,
         imageTimeout: 15000,
+        width: EXPORT_WIDTH,
+        height: exportHeight,
+        windowWidth: 1200,
+        windowHeight: Math.max(900, exportHeight),
         scrollX: 0,
-        scrollY: -window.scrollY
+        scrollY: 0
       });
     }).then(function (canvas) {
       return new Promise(function (resolve, reject) {
@@ -215,6 +259,7 @@
     }).catch(function (error) {
       downloadStatus.textContent = error.message || 'The package image could not be downloaded. Please try again.';
     }).finally(function () {
+      if (exportRender && exportRender.host.parentNode) exportRender.host.remove();
       downloadButton.disabled = false;
     });
   });
