@@ -14,9 +14,7 @@
     story: 1400,
     maximumQuantity: 999
   });
-  var EXPORT_WIDTH = 900;
   var EXPORT_SCALE = 2;
-  var EXPORT_LOGO_URL = 'assets/zyntra-studio-logo.jpg';
 
   var form = root.querySelector('#custom-package-form');
   var managementToggle = root.querySelector('#custom-management-enabled');
@@ -44,6 +42,10 @@
   var downloadButton = root.querySelector('#custom-package-download');
   var downloadStatus = root.querySelector('#custom-package-download-status');
   var hasGeneratedCard = false;
+  var isExporting = false;
+  var cardRevision = 0;
+  var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
+  var downloadButtonLabel = downloadButton.textContent;
 
   function formatRupees(amount) {
     return 'Rs. ' + amount.toLocaleString('en-US');
@@ -111,6 +113,7 @@
       cardItems.appendChild(li);
     });
     cardManagement.hidden = !state.management;
+    cardRevision += 1;
   }
 
   function update() {
@@ -128,7 +131,7 @@
       if (state.valid) {
         updateCard(state);
         result.hidden = false;
-        downloadButton.disabled = false;
+        downloadButton.disabled = isExporting;
         downloadStatus.textContent = 'Package card updated to match your latest selection.';
       } else {
         result.hidden = true;
@@ -166,16 +169,19 @@
     hasGeneratedCard = true;
     updateCard(state);
     result.hidden = false;
-    downloadButton.disabled = false;
+    downloadButton.disabled = isExporting;
     downloadStatus.textContent = '';
     result.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   });
 
   function waitForCardAssets(scope) {
-    var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
     var images = Array.prototype.slice.call(scope.querySelectorAll('img'));
     var imagesReady = Promise.all(images.map(function (image) {
-      if (image.complete && image.naturalWidth > 0) return Promise.resolve();
+      if (image.hidden || !image.src) return Promise.resolve();
+      if (image.complete) {
+        if (image.naturalWidth === 0) return Promise.resolve();
+        return typeof image.decode === 'function' ? image.decode().catch(function () {}) : Promise.resolve();
+      }
       return new Promise(function (resolve) {
         image.addEventListener('load', resolve, { once: true });
         image.addEventListener('error', resolve, { once: true });
@@ -184,84 +190,110 @@
     return Promise.all([fontsReady, imagesReady]);
   }
 
-  function createExportCard() {
-    var host = document.createElement('div');
-    var exportCard = card.cloneNode(true);
-    var logo = exportCard.querySelector('.brand-logo-image');
-    var fallback = exportCard.querySelector('.brand-logo-fallback');
-    host.className = 'custom-package-export-host';
-    host.setAttribute('aria-hidden', 'true');
-    exportCard.classList.add('custom-package-card--export');
-    exportCard.removeAttribute('id');
-    exportCard.removeAttribute('aria-labelledby');
-    exportCard.querySelectorAll('[id]').forEach(function (element) { element.removeAttribute('id'); });
-    if (logo) {
-      logo.removeAttribute('crossorigin');
-      logo.hidden = false;
-      logo.src = EXPORT_LOGO_URL;
-      logo.addEventListener('error', function () {
-        logo.hidden = true;
-        if (fallback) fallback.hidden = false;
-      }, { once: true });
-    }
-    host.appendChild(exportCard);
-    root.appendChild(host);
-    return waitForCardAssets(exportCard).then(function () {
-      return new Promise(function (resolve) {
-        window.requestAnimationFrame(function () {
-          window.requestAnimationFrame(function () { resolve({ host: host, card: exportCard }); });
-        });
-      });
-    }).catch(function (error) {
-      host.remove();
-      throw error;
+  function removeLegacyExportHosts() {
+    root.querySelectorAll('.custom-package-export-host').forEach(function (element) { element.remove(); });
+  }
+
+  function canvasToBlob(canvas) {
+    return new Promise(function (resolve, reject) {
+      canvas.toBlob(function (blob) {
+        if (blob) resolve(blob);
+        else reject(new Error('The image could not be created. Please try again.'));
+      }, 'image/png');
     });
   }
 
-  downloadButton.addEventListener('click', function () {
+  function removeFromAccessibilityFlow(element) {
+    element.setAttribute('aria-hidden', 'true');
+    element.tabIndex = -1;
+  }
+
+  downloadButton.addEventListener('click', async function () {
+    if (isExporting) return;
     var state = update();
     if (!state.valid || !hasGeneratedCard) return;
     updateCard(state);
+    isExporting = true;
     downloadButton.disabled = true;
+    downloadButton.textContent = 'Preparing image…';
     downloadStatus.textContent = 'Preparing your high-quality package image…';
-    var exportRender;
-    createExportCard().then(function (render) {
-      exportRender = render;
+    removeLegacyExportHosts();
+
+    var canvas;
+    var downloadLink;
+    var objectUrl;
+    var existingCloneContainers = new Set(document.querySelectorAll('.html2canvas-container'));
+    var cloneObserver = typeof MutationObserver === 'function' ? new MutationObserver(function (records) {
+      records.forEach(function (record) {
+        Array.prototype.forEach.call(record.addedNodes, function (node) {
+          if (node.nodeType === 1 && node.classList.contains('html2canvas-container')) removeFromAccessibilityFlow(node);
+        });
+      });
+    }) : null;
+    if (cloneObserver) cloneObserver.observe(document.body, { childList: true });
+
+    try {
       if (typeof window.html2canvas !== 'function') throw new Error('The image export library did not load. Please refresh and try again.');
-      var exportHeight = Math.ceil(render.card.getBoundingClientRect().height);
-      return window.html2canvas(render.card, {
-        backgroundColor: null,
-        scale: EXPORT_SCALE,
-        useCORS: true,
-        logging: false,
-        imageTimeout: 15000,
-        width: EXPORT_WIDTH,
-        height: exportHeight,
-        windowWidth: 1200,
-        windowHeight: Math.max(900, exportHeight),
-        scrollX: 0,
-        scrollY: 0
-      });
-    }).then(function (canvas) {
-      return new Promise(function (resolve, reject) {
-        canvas.toBlob(function (blob) { if (blob) resolve(blob); else reject(new Error('The image could not be created.')); }, 'image/png', 1);
-      });
-    }).then(function (blob) {
-      var url = URL.createObjectURL(blob);
-      var link = document.createElement('a');
-      link.href = url;
-      link.download = 'Zyntra-Studio-Custom-Package.png';
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      window.setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
+
+      await waitForCardAssets(card);
+      var renderedRevision;
+      do {
+        renderedRevision = cardRevision;
+        var bounds = card.getBoundingClientRect();
+        canvas = await window.html2canvas(card, {
+          backgroundColor: null,
+          scale: EXPORT_SCALE,
+          useCORS: true,
+          logging: false,
+          imageTimeout: 15000,
+          removeContainer: true,
+          onclone: function (clonedDocument) {
+            clonedDocument.body.setAttribute('aria-hidden', 'true');
+          },
+          width: Math.ceil(bounds.width),
+          height: Math.ceil(bounds.height),
+          windowWidth: document.documentElement.clientWidth,
+          windowHeight: document.documentElement.clientHeight
+        });
+        if (renderedRevision !== cardRevision) {
+          canvas.width = 0;
+          canvas.height = 0;
+          canvas = null;
+        }
+      } while (renderedRevision !== cardRevision);
+
+      var blob = await canvasToBlob(canvas);
+      objectUrl = URL.createObjectURL(blob);
+      downloadLink = document.createElement('a');
+      downloadLink.href = objectUrl;
+      downloadLink.download = 'Zyntra-Studio-Custom-Package.png';
+      downloadLink.hidden = true;
+      downloadLink.tabIndex = -1;
+      downloadLink.setAttribute('aria-hidden', 'true');
+      document.body.appendChild(downloadLink);
+      downloadLink.click();
       downloadStatus.textContent = 'Package image downloaded.';
-    }).catch(function (error) {
-      downloadStatus.textContent = error.message || 'The package image could not be downloaded. Please try again.';
-    }).finally(function () {
-      if (exportRender && exportRender.host.parentNode) exportRender.host.remove();
-      downloadButton.disabled = false;
-    });
+    } catch (error) {
+      downloadStatus.textContent = error && error.message
+        ? error.message
+        : 'The package image could not be downloaded. Please try again.';
+    } finally {
+      if (cloneObserver) cloneObserver.disconnect();
+      if (downloadLink) downloadLink.remove();
+      if (objectUrl) window.setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 30000);
+      if (canvas) {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+      document.querySelectorAll('.html2canvas-container').forEach(function (element) {
+        if (!existingCloneContainers.has(element)) element.remove();
+      });
+      removeLegacyExportHosts();
+      isExporting = false;
+      downloadButton.textContent = downloadButtonLabel;
+      var latestState = getState();
+      downloadButton.disabled = !hasGeneratedCard || !latestState.valid;
+    }
   });
 
   update();
