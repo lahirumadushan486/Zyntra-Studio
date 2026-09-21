@@ -77,7 +77,7 @@ const PACKAGE_CHAT_DATA = [
     accent: '#ffd45c',
     shortDescription: 'A complete monthly content management package designed to improve brand consistency, engagement and growth.',
     features: [
-      '20 Social Media Posts (Graphics and Stories)',
+      '15 Social Media Posts (Graphics and Stories)',
       '08 Short Videos/Reels (30–60 Seconds)',
       'Caption Writing',
       'Content Scheduling',

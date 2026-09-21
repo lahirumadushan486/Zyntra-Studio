@@ -18,7 +18,13 @@ document.addEventListener('DOMContentLoaded', function () {
   var requestedOffer = new URLSearchParams(window.location.search).get('offer');
   var offerTargets = {
     'starter-trial': { id: 'offer-starter-trial', name: 'Starter Trial Package' },
-    'facebook-management': { id: 'offer-facebook-management', name: 'Full Facebook Management' }
+    'facebook-management': { id: 'offer-facebook-management', name: 'Full Facebook Management' },
+    'growth-package': {
+      id: 'offer-growth-package',
+      name: 'Growth Package',
+      shareTitle: 'Zyntra Studio \u2014 Growth Package',
+      shareText: 'Zyntra Studio \u2014 Growth Package\nMost Popular\n\nRs. 46,000 / Month\n\nFREE MONTHLY US$10 AD BOOST\n\n20 Social Media Posts \u2014 Graphics + Stories\n08 Short Videos / Reels \u2014 30\u201360 seconds\nCaption Writing and Scheduling\nBasic Community Engagement\nFree Special Days Posts\n\nAdditional advertising spend is charged separately.\n\nCall / WhatsApp: 070 600 4033'
+    }
   };
 
   // Public share URLs use the main domain. Route valid links to the site's
@@ -152,6 +158,7 @@ document.addEventListener('DOMContentLoaded', function () {
     }
 
     function copyWithFeedback(button, url) {
+      showButtonFeedback(button, 'Copying...');
       return copyOfferUrl(url).then(function (copied) {
         showButtonFeedback(button, copied ? 'Link Copied' : 'Copy Failed');
       }).catch(function (error) {
@@ -167,14 +174,20 @@ document.addEventListener('DOMContentLoaded', function () {
         if (!offer) return;
 
         var url = buildOfferUrl(slug);
-        var message = 'Zyntra Studio Offers\n\n' + offer.name + '\nView the complete package details, included services and pricing using the link below:\n\n' + url;
+        var message = offer.shareText || ('Zyntra Studio Offers\n\n' + offer.name + '\nView the complete package details, included services and pricing using the link below:\n\n' + url);
 
         if (typeof navigator.share === 'function') {
-          navigator.share({ title: offer.name, text: message, url: url }).catch(function (error) {
-            if (error && error.name === 'AbortError') return;
-            console.warn('Native offer sharing failed; copying the link instead.', error);
-            copyWithFeedback(button, url);
-          });
+          showButtonFeedback(button, 'Sharing...');
+          navigator.share({ title: offer.shareTitle || offer.name, text: message, url: url })
+            .then(function () { showButtonFeedback(button, 'Shared'); })
+            .catch(function (error) {
+              if (error && error.name === 'AbortError') {
+                showButtonFeedback(button, 'Share Offer');
+                return;
+              }
+              console.warn('Native offer sharing failed; copying the link instead.', error);
+              copyWithFeedback(button, url);
+            });
           return;
         }
 
@@ -241,7 +254,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var navLinks = Array.prototype.slice.call(document.querySelectorAll('.nav-link[data-nav]'));
   var observedSections = document.querySelectorAll('main section[id]');
-  var navAliases = { 'mobile-shooting': 'services', process: 'services', 'services-full': 'services', 'packages-full': 'packages', faq: 'about' };
+  var navAliases = { 'mobile-shooting': 'services', process: 'services', 'services-full': 'services', 'packages-full': 'packages', 'build-your-package': 'packages', faq: 'about' };
 
   function setActiveNav(id) {
     var activeId = navAliases[id] || id;

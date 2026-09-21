@@ -10,7 +10,7 @@
     postFirstTen: 1000,
     postAfterTen: 800,
     video25: 2000,
-    video50: 2500,
+    video50: 3000,
     story: 1400,
     maximumQuantity: 999
   });
@@ -41,9 +41,14 @@
   var cardNotice = root.querySelector('#custom-card-notice');
   var downloadButton = root.querySelector('#custom-package-download');
   var downloadStatus = root.querySelector('#custom-package-download-status');
+  var shareButton = root.querySelector('#custom-package-share');
+  var copyLinkButton = root.querySelector('#custom-package-copy-link');
+  var shareStatus = root.querySelector('#custom-package-share-status');
   var hasGeneratedCard = false;
   var isExporting = false;
+  var isSharing = false;
   var cardRevision = 0;
+  var shareStatusTimer;
   var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
   var downloadButtonLabel = downloadButton.textContent;
 
@@ -206,6 +211,113 @@
   function removeFromAccessibilityFlow(element) {
     element.setAttribute('aria-hidden', 'true');
     element.tabIndex = -1;
+  }
+
+  function buildPackageBuilderUrl() {
+    var url = new URL(window.location.href);
+    url.username = '';
+    url.password = '';
+    url.search = '';
+    url.hash = 'build-your-package';
+    return url.toString();
+  }
+
+  function fallbackCopyLink(value) {
+    var textarea = document.createElement('textarea');
+    textarea.value = value;
+    textarea.setAttribute('readonly', '');
+    textarea.setAttribute('aria-hidden', 'true');
+    textarea.style.position = 'fixed';
+    textarea.style.opacity = '0';
+    textarea.style.pointerEvents = 'none';
+    document.body.appendChild(textarea);
+    textarea.select();
+    var copied = false;
+    try { copied = document.execCommand('copy'); } catch (error) { copied = false; }
+    textarea.remove();
+    return copied;
+  }
+
+  function copyPackageBuilderUrl(url) {
+    if (navigator.clipboard && typeof navigator.clipboard.writeText === 'function') {
+      return navigator.clipboard.writeText(url).then(function () { return true; }, function () { return fallbackCopyLink(url); });
+    }
+    return Promise.resolve(fallbackCopyLink(url));
+  }
+
+  function announceShareStatus(message, isError) {
+    window.clearTimeout(shareStatusTimer);
+    shareStatus.textContent = message;
+    shareStatus.classList.toggle('is-error', Boolean(isError));
+    shareStatusTimer = window.setTimeout(function () {
+      shareStatus.textContent = '';
+      shareStatus.classList.remove('is-error');
+    }, 3500);
+  }
+
+  function setTemporaryButtonLabel(button, label, originalLabel) {
+    var labelElement = button.querySelector('span');
+    if (!labelElement) return;
+    window.clearTimeout(button.packageShareTimer);
+    labelElement.textContent = label;
+    button.packageShareTimer = window.setTimeout(function () {
+      labelElement.textContent = originalLabel;
+    }, 2000);
+  }
+
+  function copyLinkWithFeedback(button, originalLabel) {
+    button.disabled = true;
+    setTemporaryButtonLabel(button, 'Copying...', originalLabel);
+    return copyPackageBuilderUrl(buildPackageBuilderUrl()).then(function (copied) {
+      if (!copied) throw new Error('Copy failed');
+      setTemporaryButtonLabel(button, 'Copied!', originalLabel);
+      announceShareStatus('Package builder link copied!', false);
+      return true;
+    }).catch(function () {
+      setTemporaryButtonLabel(button, 'Try Again', originalLabel);
+      announceShareStatus('The link could not be copied. Please try again.', true);
+      return false;
+    }).finally(function () {
+      button.disabled = false;
+    });
+  }
+
+  if (copyLinkButton) {
+    copyLinkButton.addEventListener('click', function () {
+      copyLinkWithFeedback(copyLinkButton, 'Copy Link');
+    });
+  }
+
+  if (shareButton) {
+    shareButton.addEventListener('click', function () {
+      if (isSharing) return;
+      var url = buildPackageBuilderUrl();
+      if (typeof navigator.share !== 'function') {
+        copyLinkWithFeedback(shareButton, 'Share Link');
+        return;
+      }
+
+      isSharing = true;
+      shareButton.disabled = true;
+      setTemporaryButtonLabel(shareButton, 'Sharing...', 'Share Link');
+      navigator.share({
+        title: 'Build Your Own Package \u2013 Zyntra Studio',
+        text: 'Create a custom Zyntra Studio package by selecting the posts, videos and social media management services you need.',
+        url: url
+      }).then(function () {
+        setTemporaryButtonLabel(shareButton, 'Shared!', 'Share Link');
+        announceShareStatus('Package builder link shared!', false);
+      }).catch(function (error) {
+        if (error && error.name === 'AbortError') {
+          setTemporaryButtonLabel(shareButton, 'Share Link', 'Share Link');
+          return;
+        }
+        return copyLinkWithFeedback(shareButton, 'Share Link');
+      }).finally(function () {
+        isSharing = false;
+        shareButton.disabled = false;
+      });
+    });
   }
 
   downloadButton.addEventListener('click', async function () {

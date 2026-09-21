@@ -504,7 +504,7 @@
           <h3>Monthly Video Editing</h3>
           <p class="price">Rs. 15,000<span>/month</span></p>
           <ul>
-            <li>6 edited videos</li>
+            <li>5 edited videos</li>
             <li>Duration approx. 1-1.50 minutes</li>
             <li>Client-provided footage</li>
             <li>Music and sound effects</li>
@@ -518,7 +518,7 @@
 
         <article class="package-card reveal" data-package-id="ai-video-plan-a">
           <h3>AI Video Plan A</h3>
-          <p class="price">Rs. 2,500<span>/video</span></p>
+          <p class="price">Rs. 3,000<span>/video</span></p>
           <ul>
             <li>Video up to 45 seconds</li>
             <li>AI and stock footage combination</li>
@@ -552,13 +552,25 @@
   </section>
 
   <!-- Build Your Own Package calculator -->
-  <section class="section" id="custom-package-builder" aria-labelledby="custom-package-title">
+  <section id="build-your-package" aria-labelledby="custom-package-title">
+    <div class="section" id="custom-package-builder">
     <div class="section-inner custom-package-builder__inner">
       <header class="custom-package-builder__header reveal">
         <p class="eyebrow">Flexible content planning</p>
         <h2 id="custom-package-title">Build Your Own Package</h2>
         <p class="custom-package-builder__sinhala" lang="si">ඔබේ Business එකට ගැලපෙන Package එක ඔබම හදාගන්න</p>
         <p>Posts, videos සහ අවශ්‍ය නම් social media management තෝරන්න. ඔබේ package එකේ මුළු මිල පහතින් බලන්න.</p>
+        <div class="custom-package-builder__share-actions" aria-label="Share the package builder">
+          <button class="btn custom-package-builder__share-button" id="custom-package-share" type="button" aria-label="Share a direct link to the Build Your Own Package section">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="18" cy="5" r="3"></circle><circle cx="6" cy="12" r="3"></circle><circle cx="18" cy="19" r="3"></circle><path d="m8.6 10.5 6.8-4M8.6 13.5l6.8 4"></path></svg>
+            <span>Share Link</span>
+          </button>
+          <button class="btn custom-package-builder__share-button" id="custom-package-copy-link" type="button" aria-label="Copy a direct link to the Build Your Own Package section">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="8" y="8" width="11" height="11" rx="2"></rect><path d="M16 8V6a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h2"></path></svg>
+            <span>Copy Link</span>
+          </button>
+        </div>
+        <p class="custom-package-builder__share-status" id="custom-package-share-status" role="status" aria-live="polite" aria-atomic="true"></p>
       </header>
 
       <div class="custom-package-builder__panel reveal">
@@ -605,7 +617,7 @@
             <legend>Choose your content</legend>
             <div class="custom-package-builder__service-list">
               <div class="custom-package-builder__service">
-                <div><h3>Static Posts</h3><p>Progressive pricing applies from post 6 onward.</p></div>
+                <div><h3>Static Posts</h3><p>Progressive pricing applies from post 10 onward.</p></div>
                 <div class="custom-package-builder__quantity" data-quantity-control>
                   <button type="button" data-quantity-action="decrease" aria-label="Decrease static posts">−</button>
                   <label><span class="sr-only">Static post quantity</span><input id="custom-post-count" inputmode="numeric" type="number" min="0" max="999" step="1" value="0"></label>
@@ -629,7 +641,7 @@
                 </div>
               </div>
               <div class="custom-package-builder__service custom-package-builder__service--addon">
-                <div><h3>Simple Story Videos <span>up to 30 seconds</span></h3><p>Simple editing suited to story-style content. Add this to a posts or professional-video order.</p></div>
+                <div><h3>Simple Story Videos <span>up to 20 seconds</span></h3><p>Simple editing suited to story-style content. Add this to a posts or professional-video order.</p></div>
                 <div class="custom-package-builder__quantity" data-quantity-control>
                   <button type="button" data-quantity-action="decrease" aria-label="Decrease story videos">−</button>
                   <label><span class="sr-only">Story video quantity</span><input id="custom-story-count" inputmode="numeric" type="number" min="0" max="999" step="1" value="0"></label>
@@ -671,6 +683,7 @@
         <button class="btn btn-outline custom-package-builder__download" id="custom-package-download" type="button">Download Package Image</button>
         <p class="custom-package-builder__download-status" id="custom-package-download-status" role="status" aria-live="polite"></p>
       </div>
+    </div>
     </div>
   </section>
 
