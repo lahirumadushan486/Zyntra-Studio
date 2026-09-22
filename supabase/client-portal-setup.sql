@@ -9,8 +9,11 @@ create table if not exists public.profiles (
   full_name text, business_name text, phone text,
   role text not null default 'client' check (role in ('admin','client')),
   active boolean not null default true,
+  must_change_password boolean not null default false,
   created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
+
+alter table public.profiles add column if not exists must_change_password boolean not null default false;
 
 create table if not exists public.client_login_ids (
   user_id uuid primary key references auth.users(id) on delete cascade,
@@ -168,14 +171,15 @@ create or replace function public.handle_new_portal_user()
 returns trigger language plpgsql security definer set search_path = pg_catalog, public as $$
 declare requested_login_id text;
 begin
-  insert into public.profiles(id, full_name, business_name, phone, role, active)
+  insert into public.profiles(id, full_name, business_name, phone, role, active, must_change_password)
   values(
     new.id,
     nullif(left(btrim(coalesce(new.raw_user_meta_data ->> 'full_name','')),120),''),
     nullif(left(btrim(coalesce(new.raw_user_meta_data ->> 'business_name','')),160),''),
     nullif(left(btrim(coalesce(new.raw_user_meta_data ->> 'phone','')),40),''),
     'client',
-    true
+    true,
+    coalesce((new.raw_user_meta_data ->> 'must_change_password')::boolean, false)
   )
   -- Never overwrite an existing profile, especially an administrator profile.
   on conflict(id) do nothing;
@@ -193,6 +197,25 @@ begin
   return new;
 end;
 $$;
+
+-- Clear the forced-change marker only when Supabase Auth has actually written a
+-- new password hash. Browser code and normal profile updates cannot bypass it.
+create or replace function public.handle_portal_password_changed()
+returns trigger language plpgsql security definer set search_path = pg_catalog, public, auth as $$
+begin
+  if new.encrypted_password is distinct from old.encrypted_password then
+    update public.profiles
+    set must_change_password = false
+    where id = new.id and role = 'client';
+  end if;
+  return new;
+end;
+$$;
+
+drop trigger if exists on_portal_password_changed on auth.users;
+create trigger on_portal_password_changed
+after update of encrypted_password on auth.users
+for each row execute function public.handle_portal_password_changed();
 drop trigger if exists on_auth_user_created_create_portal_profile on auth.users;
 create trigger on_auth_user_created_create_portal_profile after insert on auth.users for each row execute function public.handle_new_portal_user();
 
@@ -205,7 +228,7 @@ create or replace function public.protect_profile_security_fields()
 returns trigger language plpgsql security definer set search_path = pg_catalog, public as $$
 begin
   if auth.uid() is null or public.is_portal_admin() then return new; end if;
-  if old.id <> auth.uid() or new.id is distinct from old.id or new.role is distinct from old.role or new.active is distinct from old.active or new.created_at is distinct from old.created_at or new.updated_at is distinct from old.updated_at then
+  if old.id <> auth.uid() or new.id is distinct from old.id or new.role is distinct from old.role or new.active is distinct from old.active or new.must_change_password is distinct from old.must_change_password or new.created_at is distinct from old.created_at or new.updated_at is distinct from old.updated_at then
     raise exception 'Profile security fields cannot be changed';
   end if;
   return new;
@@ -441,9 +464,11 @@ alter table public.portal_notifications enable row level security;
 alter table public.portal_activity enable row level security;
 
 revoke all on public.profiles, public.client_login_ids, public.client_login_rate_limits, public.client_projects, public.content_calendar, public.project_drafts, public.revision_requests, public.deliverables, public.invoices, public.portal_notifications, public.portal_activity from anon;
+revoke insert,update,delete on public.profiles from authenticated;
 revoke all on public.client_login_ids, public.client_login_rate_limits from authenticated;
 grant select,insert,update,delete on public.client_login_ids, public.client_login_rate_limits to service_role;
-grant select,insert,update,delete on public.profiles, public.client_projects, public.content_calendar, public.project_drafts, public.revision_requests, public.deliverables, public.invoices, public.portal_notifications, public.portal_activity to authenticated;
+grant select on public.profiles to authenticated;
+grant select,insert,update,delete on public.client_projects, public.content_calendar, public.project_drafts, public.revision_requests, public.deliverables, public.invoices, public.portal_notifications, public.portal_activity to authenticated;
 grant select on public.client_login_ids to authenticated;
 grant usage,select on sequence public.portal_activity_id_seq to authenticated;
 

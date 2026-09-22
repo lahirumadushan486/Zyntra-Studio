@@ -28,25 +28,18 @@
       <form id="portal-login-form" class="cp-form" novalidate>
         <label class="cp-field"><span>Email or Client ID</span><input id="login-identifier" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="name@example.com or ZYN-CLIENT01" maxlength="254" required></label>
         <label class="cp-field"><span>Password</span><span class="cp-password-field"><input id="login-password" type="password" autocomplete="current-password" minlength="8" maxlength="128" placeholder="Enter your password" required><button id="toggle-password" type="button" aria-label="Show password">Show</button></span></label>
+        <button id="forgot-password" class="cp-text-button" type="button">Forgot Password?</button>
         <div id="client-login-captcha" class="cp-captcha" aria-label="Security verification"></div>
         <button id="login-submit" class="cp-button cp-button--primary" type="submit"><span data-button-label>Sign In</span><i class="cp-spinner" aria-hidden="true"></i></button>
-        <button id="forgot-password" class="cp-text-button" type="button">Forgot Password?</button>
         <p id="login-status" class="cp-form-status" role="status" aria-live="polite"></p>
         <a id="role-help-link" class="cp-role-help" hidden></a>
       </form>
       <form id="password-request-form" class="cp-form" hidden novalidate>
-        <p class="cp-reset-intro">Enter the email address connected to your account. Password reset links cannot be sent to a Client ID.</p>
+        <div class="cp-reset-heading"><h2>Reset Your Password</h2><p class="cp-reset-intro">Enter the email address connected to your Zyntra Studio client account. We will send you a secure password reset link.</p></div>
         <label class="cp-field"><span>Registered email address</span><input id="reset-email" type="email" autocomplete="email" inputmode="email" maxlength="254" required></label>
         <button id="password-request-submit" class="cp-button cp-button--primary" type="submit">Send Reset Link</button>
         <button id="password-request-cancel" class="cp-text-button" type="button">Back to Sign In</button>
         <p id="password-request-status" class="cp-form-status" role="status" aria-live="polite"></p>
-      </form>
-      <form id="password-reset-form" class="cp-form" hidden novalidate>
-        <p class="cp-reset-intro">Choose a new password for your portal account.</p>
-        <label class="cp-field"><span>New password</span><input id="new-password" type="password" autocomplete="new-password" minlength="8" required></label>
-        <label class="cp-field"><span>Confirm password</span><input id="confirm-password" type="password" autocomplete="new-password" minlength="8" required></label>
-        <button id="reset-submit" class="cp-button cp-button--primary" type="submit">Update Password</button>
-        <p id="reset-status" class="cp-form-status" role="status" aria-live="polite"></p>
       </form>
       <a class="cp-back-link" href="index.html">← Back to the Zyntra Studio website</a>
     </section>

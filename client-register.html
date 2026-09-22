@@ -23,9 +23,9 @@
   <main class="client-register-main">
     <section class="client-register-card" aria-labelledby="register-title">
       <div class="client-register-copy">
-        <p class="client-register-eyebrow" id="register-eyebrow">Secure client registration</p>
-        <h1 id="register-title">Register for Client Portal</h1>
-        <p id="register-description">Create your secure Zyntra Studio Client Portal account to review projects, approvals and completed work.</p>
+        <p class="client-register-eyebrow" id="register-eyebrow">Administrator client registration</p>
+        <h1 id="register-title">Register Client</h1>
+        <p id="register-description">Create the client account directly with an initial temporary password.</p>
       </div>
 
       <div class="client-register-loading" id="register-loading" role="status">Checking your portal session…</div>
@@ -36,8 +36,8 @@
         <div class="client-register-field"><label for="register-email" id="register-email-label">Email Address</label><input id="register-email" name="email" type="email" inputmode="email" autocomplete="email" maxlength="254" required></div>
         <div class="client-register-field"><label for="register-client-id">Client ID <small>Optional</small></label><input id="register-client-id" name="client_id" type="text" autocomplete="off" autocapitalize="characters" spellcheck="false" minlength="5" maxlength="24" placeholder="ZYN-LAHIRU25" aria-describedby="client-id-help client-id-status"><small id="client-id-help">Optional — You can use this Client ID instead of your email when signing in.</small><small id="client-id-status" class="client-register-id-status" role="status"></small></div>
         <div class="client-register-field"><label for="register-phone">Phone Number <small>Optional</small></label><input id="register-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel" maxlength="40"></div>
-        <div class="client-register-field client-register-public"><label for="register-password">Password</label><span class="client-register-password"><input id="register-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required><button type="button" data-password-toggle="register-password" aria-label="Show password">Show</button></span><div class="client-register-strength" aria-hidden="true"><i id="password-strength-bar"></i></div><small id="password-guidance">Use at least 8 characters with upper and lowercase letters, a number and a symbol.</small></div>
-        <div class="client-register-field client-register-public"><label for="register-confirm-password">Confirm Password</label><span class="client-register-password"><input id="register-confirm-password" name="confirm_password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required><button type="button" data-password-toggle="register-confirm-password" aria-label="Show password confirmation">Show</button></span></div>
+        <div class="client-register-field client-register-public"><label for="register-password">Temporary Password</label><span class="client-register-password"><input id="register-password" name="password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required><button type="button" data-password-toggle="register-password" aria-label="Show password">Show</button></span><div class="client-register-strength" aria-hidden="true"><i id="password-strength-bar"></i></div><small id="password-guidance">Use at least 8 characters with upper and lowercase letters, a number and a symbol.</small></div>
+        <div class="client-register-field client-register-public"><label for="register-confirm-password">Confirm Temporary Password</label><span class="client-register-password"><input id="register-confirm-password" name="confirm_password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required><button type="button" data-password-toggle="register-confirm-password" aria-label="Show password confirmation">Show</button></span></div>
         <label class="client-register-terms client-register-public"><input id="register-terms" name="terms" type="checkbox" required><span>I accept the Portal Terms and understand that portal access is for authorized Zyntra Studio clients.</span></label>
         <div id="register-captcha" class="client-register-captcha client-register-public" aria-label="Security verification"></div>
         <button class="client-register-submit" id="register-submit" type="submit"><span id="register-submit-label">Register Client</span><i aria-hidden="true"></i></button>

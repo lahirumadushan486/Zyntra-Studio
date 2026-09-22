@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Reset Your Password | Zyntra Studio</title>
+  <meta name="description" content="Secure Zyntra Studio Client Portal password reset.">
+  <link rel="icon" href="data:,">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../../css/client-portal.css">
+  <link rel="stylesheet" href="../../css/portal-session-timeout.css">
+</head>
+<body class="client-login-page" data-password-reset-page>
+  <main class="cp-login-shell">
+    <a class="cp-brand" href="../../index.html" aria-label="Zyntra Studio home"><span>ZS</span><strong>Zyntra <i>Studio</i></strong></a>
+    <section class="cp-login-card" aria-labelledby="reset-page-title">
+      <div class="cp-login-copy">
+        <p class="cp-eyebrow">Secure client access</p>
+        <h1 id="reset-page-title">Reset Your Password</h1>
+        <p id="reset-page-description">Choose a strong new password for your Zyntra Studio Client Portal account.</p>
+      </div>
+
+      <p class="cp-reset-loading" id="reset-session-status" role="status">Validating your secure password-reset session…</p>
+
+      <form id="secure-password-reset-form" class="cp-form" hidden novalidate>
+        <label class="cp-field"><span>New Password</span><span class="cp-password-field"><input id="secure-new-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required><button type="button" data-reset-password-toggle="secure-new-password" aria-label="Show new password">Show</button></span></label>
+        <div class="cp-password-strength" aria-label="Password strength"><i id="secure-password-strength-bar"></i></div>
+        <p class="cp-password-guidance" id="secure-password-guidance">Use at least 8 characters with one uppercase letter, one lowercase letter, one number and one symbol.</p>
+        <label class="cp-field"><span>Confirm New Password</span><span class="cp-password-field"><input id="secure-confirm-password" type="password" autocomplete="new-password" minlength="8" maxlength="128" required><button type="button" data-reset-password-toggle="secure-confirm-password" aria-label="Show password confirmation">Show</button></span></label>
+        <button id="secure-reset-submit" class="cp-button cp-button--primary" type="submit"><span data-reset-submit-label>Update Password</span><i class="cp-spinner" aria-hidden="true"></i></button>
+        <button id="request-another-reset" class="cp-button cp-button--secondary" type="button" hidden>Send a Password-Reset Email Instead</button>
+        <p id="secure-reset-status" class="cp-form-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      </form>
+
+      <div id="invalid-reset-link" class="cp-reset-invalid" hidden>
+        <p>This password reset link is invalid or has expired. Please request a new link.</p>
+        <a class="cp-button cp-button--secondary" href="../../client-login.html">Return to Client Login</a>
+      </div>
+      <a class="cp-back-link" href="../../client-login.html">Back to Client Login</a>
+    </section>
+  </main>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../../js/supabase-config.js"></script>
+  <script src="../../js/portal-session-timeout.js"></script>
+  <script src="../../js/client-auth.js"></script>
+  <script src="../../js/password-reset.js"></script>
+</body>
+</html>

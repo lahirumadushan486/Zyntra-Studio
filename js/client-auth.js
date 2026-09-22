@@ -5,7 +5,8 @@
     clientLogin: 'client-login.html',
     adminLogin: 'admin-login.html',
     clientDashboard: 'client-portal.html',
-    adminDashboard: 'admin-dashboard.html'
+    adminDashboard: 'admin-dashboard.html',
+    clientPasswordReset: '/client/reset-password/'
   });
 
   class PortalAuthError extends Error {
@@ -50,7 +51,7 @@
     let result;
     try {
       result = await client().from('profiles')
-        .select('id,full_name,business_name,phone,role,active,created_at,updated_at')
+        .select('id,full_name,business_name,phone,role,active,must_change_password,created_at,updated_at')
         .eq('id', userId)
         .single();
     } catch (error) {
@@ -108,6 +109,17 @@
     return normalizeRole(role) === 'admin' ? routes.adminLogin : routes.clientLogin;
   }
 
+  function verifiedPublicOrigin() {
+    const origin = global.location.origin;
+    if (origin === 'https://zyntrastudio.lk' || origin === 'https://www.zyntrastudio.lk') return origin;
+    if (/^http:\/\/(?:localhost|127\.0\.0\.1)(?::\d+)?$/.test(origin)) return origin;
+    return 'https://zyntrastudio.lk';
+  }
+
+  function passwordResetUrl() {
+    return verifiedPublicOrigin() + routes.clientPasswordReset;
+  }
+
   async function requireAccess(requiredRole) {
     const role = normalizeRole(requiredRole);
     let result;
@@ -131,6 +143,12 @@
 
     try {
       const profile = await validateSessionForRole(result.data.session, role);
+      const currentPath = global.location.pathname.replace(/\/$/, '');
+      const resetPath = routes.clientPasswordReset.replace(/\/$/, '');
+      if (role === 'client' && profile.must_change_password === true && currentPath !== resetPath) {
+        global.location.replace(routes.clientPasswordReset + '?mode=change');
+        return null;
+      }
       return { session: result.data.session, user: result.data.session.user, profile: profile };
     } catch (error) {
       const code = error.code === 'wrong_role' || error.code === 'role_invalid' ? 'wrong-role' : error.code;
@@ -168,6 +186,8 @@
     requireAccess: requireAccess,
     watchProtectedSession: watchProtectedSession,
     logout: logout,
-    safeMessage: safeMessage
+    safeMessage: safeMessage,
+    verifiedPublicOrigin: verifiedPublicOrigin,
+    passwordResetUrl: passwordResetUrl
   });
 }(window));

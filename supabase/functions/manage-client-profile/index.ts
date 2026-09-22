@@ -19,6 +19,7 @@ function combined(profile: Record<string, unknown>, email: string | null, mappin
     phone: profile.phone,
     role: profile.role,
     active: profile.active,
+    must_change_password: profile.must_change_password,
     client_id: mapping?.login_id || null,
     client_id_active: mapping?.active ?? null,
     created_at: profile.created_at,
@@ -50,7 +51,7 @@ Deno.serve(async (request) => {
   const action = clean(input.action, 30);
 
   if (action === 'list') {
-    const profiles = await admin.from('profiles').select('id,full_name,business_name,phone,role,active,created_at,updated_at').eq('role', 'client').order('created_at', { ascending: false });
+    const profiles = await admin.from('profiles').select('id,full_name,business_name,phone,role,active,must_change_password,created_at,updated_at').eq('role', 'client').order('created_at', { ascending: false });
     if (profiles.error) return reply(origin, 500, { success: false, error: 'Clients could not be loaded.' });
     const ids = (profiles.data || []).map((profile) => profile.id);
     const mappings = ids.length ? await admin.from('client_login_ids').select('user_id,login_id,active,created_at,updated_at').in('user_id', ids) : { data: [], error: null };
@@ -69,7 +70,7 @@ Deno.serve(async (request) => {
 
   const userId = clean(input.userId, 36);
   if (!uuidPattern.test(userId)) return reply(origin, 400, { success: false, error: 'A valid client is required.' });
-  const target = await admin.from('profiles').select('id,full_name,business_name,phone,role,active,created_at,updated_at').eq('id', userId).maybeSingle();
+  const target = await admin.from('profiles').select('id,full_name,business_name,phone,role,active,must_change_password,created_at,updated_at').eq('id', userId).maybeSingle();
   if (target.error || target.data?.role !== 'client') return reply(origin, 404, { success: false, error: 'Client profile could not be found.' });
 
   if (action === 'get') {
@@ -79,6 +80,21 @@ Deno.serve(async (request) => {
     ]);
     if (mapping.error || authUser.error) return reply(origin, 500, { success: false, error: 'Client profile could not be loaded.' });
     return reply(origin, 200, { success: true, client: combined(target.data, authUser.data.user?.email || null, mapping.data || undefined) });
+  }
+
+  if (action === 'send-password-reset') {
+    const authUser = await admin.auth.admin.getUserById(userId);
+    const email = String(authUser.data.user?.email || '').trim().toLowerCase();
+    if (authUser.error || !email) return reply(origin, 404, { success: false, error: 'The client email could not be found.' });
+    const resetClient = createClient(supabaseUrl, anonKey, { auth: { persistSession: false, autoRefreshToken: false } });
+    const redirectOrigin = origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:') ? origin : 'https://zyntrastudio.lk';
+    const reset = await resetClient.auth.resetPasswordForEmail(email, { redirectTo: redirectOrigin + '/client/reset-password/' });
+    if (reset.error) {
+      const limited = /rate|too many|security purposes/i.test(reset.error.message || '');
+      return reply(origin, limited ? 429 : 503, { success: false, error: limited ? 'Please wait before requesting another password reset email.' : 'Password reset instructions could not be sent. Please try again.' });
+    }
+    await admin.from('portal_activity').insert({ actor_id: callerUser.data.user.id, action: 'Password reset requested', entity_type: 'client_profile', entity_id: userId, details: 'Recovery email requested by administrator' });
+    return reply(origin, 200, { success: true });
   }
 
   if (action === 'availability') {
@@ -123,7 +139,7 @@ Deno.serve(async (request) => {
       return reply(origin, duplicate ? 409 : missing ? 404 : forbidden ? 403 : 400, { success: false, error: duplicate ? 'Client ID is already in use.' : missing ? 'Client profile could not be found.' : forbidden ? 'You do not have permission to edit this client.' : 'The update could not be completed. Please try again.' });
     }
     const [freshProfile, freshMapping, authUser] = await Promise.all([
-      admin.from('profiles').select('id,full_name,business_name,phone,role,active,created_at,updated_at').eq('id', userId).single(),
+      admin.from('profiles').select('id,full_name,business_name,phone,role,active,must_change_password,created_at,updated_at').eq('id', userId).single(),
       admin.from('client_login_ids').select('user_id,login_id,active,created_at,updated_at').eq('user_id', userId).maybeSingle(),
       admin.auth.admin.getUserById(userId)
     ]);
