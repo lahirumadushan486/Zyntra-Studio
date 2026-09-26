@@ -651,6 +651,54 @@
             </div>
           </fieldset>
 
+          <fieldset class="custom-package-builder__group custom-package-builder__youtube">
+            <legend>YouTube Long-Form Video Editing</legend>
+            <p class="custom-package-builder__youtube-intro">Charged according to the duration and editing requirements of each video.</p>
+            <label class="custom-package-builder__toggle" for="custom-youtube-enabled">
+              <input type="checkbox" id="custom-youtube-enabled">
+              <span class="custom-package-builder__toggle-track" aria-hidden="true"><span></span></span>
+              <span>Add YouTube Long-Form Video Editing</span>
+            </label>
+
+            <div class="custom-package-builder__youtube-details" id="custom-youtube-details" hidden>
+              <div class="custom-package-builder__youtube-count-row">
+                <div><strong>Number of Videos</strong><span>Choose between 1 and 20 videos.</span></div>
+                <div class="custom-package-builder__quantity" aria-label="Number of YouTube long-form videos">
+                  <button id="custom-youtube-decrease" type="button" aria-label="Decrease YouTube video count">−</button>
+                  <output id="custom-youtube-count" aria-live="polite">1</output>
+                  <button id="custom-youtube-increase" type="button" aria-label="Increase YouTube video count">+</button>
+                </div>
+              </div>
+
+              <div class="custom-package-builder__durations" id="custom-youtube-durations"></div>
+              <p class="custom-package-builder__duration-total">Total Duration: <strong id="custom-youtube-total-duration">1 Minute</strong></p>
+
+              <fieldset class="custom-package-builder__youtube-options">
+                <legend>Editing Type</legend>
+                <div class="custom-package-builder__choice-grid">
+                  <label><input type="radio" name="custom-youtube-editing-type" value="basic"><span>Basic Editing</span></label>
+                  <label><input type="radio" name="custom-youtube-editing-type" value="professional"><span>Professional Editing</span></label>
+                  <label><input type="radio" name="custom-youtube-editing-type" value="advanced"><span>Advanced Editing</span></label>
+                </div>
+              </fieldset>
+
+              <fieldset class="custom-package-builder__youtube-options">
+                <legend>Optional Requirements</legend>
+                <div class="custom-package-builder__choice-grid custom-package-builder__choice-grid--addons">
+                  <label><input type="checkbox" name="custom-youtube-addon" value="thumbnail"><span>Thumbnail Design</span></label>
+                  <label><input type="checkbox" name="custom-youtube-addon" value="subtitles"><span>Subtitles</span></label>
+                  <label><input type="checkbox" name="custom-youtube-addon" value="introOutro"><span>Intro / Outro</span></label>
+                  <label><input type="checkbox" name="custom-youtube-addon" value="motionGraphics"><span>Motion Graphics</span></label>
+                </div>
+              </fieldset>
+
+              <div class="custom-package-builder__youtube-notice">
+                <p>YouTube long-form video editing charges depend on the duration and editing requirements. The final price will be discussed and confirmed separately. Contact Zyntra Studio for more details.</p>
+                <p lang="si">YouTube Long-Form Video Editing price එක video duration සහ editing requirements අනුව වෙනස් වේ. වැඩි විස්තර සහ final quotation එක සඳහා අපිත් එක්ක කතා කරන්න.</p>
+              </div>
+            </div>
+          </fieldset>
+
           <div class="custom-package-builder__summary">
             <div><p class="custom-package-builder__total-label" id="custom-package-total-label">PACKAGE TOTAL</p><output class="custom-package-builder__total" id="custom-package-total" aria-live="polite">Rs. 0</output></div>
             <p class="custom-package-builder__notice" id="custom-package-notice">Advertising spend is not included in this content package.</p>
