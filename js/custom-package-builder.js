@@ -5,8 +5,8 @@
   if (!root) return;
 
   var PRICING = Object.freeze({
-    managementFirstPlatform: 5000,
-    managementAdditionalPlatform: 500,
+    managementFirstPlatform: 7000,
+    managementAdditionalPlatform: 1000,
     postFirstTen: 1000,
     postAfterTen: 800,
     video25: 2000,

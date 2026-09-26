@@ -28,7 +28,7 @@ const PACKAGE_CHAT_DATA = [
     id: 'starter',
     name: 'STARTER PACKAGE',
     displayName: 'Starter',
-    price: 'Rs. 18,000',
+    price: 'Rs. 19,000',
     billingPeriod: 'Month',
     badge: 'Starter',
     theme: 'orange',
@@ -83,7 +83,7 @@ const PACKAGE_CHAT_DATA = [
       'Content Scheduling',
       'Basic Community Engagement',
       'FREE Special Days Post, such as a Poya Day post',
-      'FREE Monthly $10 Ad Boost'
+      'FREE Monthly $5 Ad Boost'
     ],
     noteLabel: 'Customisation note',
     note: 'Need something different? Every package can be customised to suit your business.',
