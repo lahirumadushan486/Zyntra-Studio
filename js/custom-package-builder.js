@@ -7,8 +7,11 @@
   var PRICING = Object.freeze({
     managementFirstPlatform: 7000,
     managementAdditionalPlatform: 1000,
-    postFirstTen: 1000,
-    postAfterTen: 800,
+    staticPosts: Object.freeze({
+      standardRate: 1000,
+      bulkRate: 800,
+      bulkRateStartsAt: 11
+    }),
     video25: 2000,
     video50: 3000,
     story: 1400,
@@ -74,6 +77,20 @@
     return 'Rs. ' + amount.toLocaleString('en-US');
   }
 
+  function calculateStaticPostsPrice(quantity) {
+    var postCount = Math.max(0, Math.floor(Number(quantity) || 0));
+
+    if (postCount === 0) {
+      return 0;
+    }
+
+    var ratePerPost = postCount < PRICING.staticPosts.bulkRateStartsAt
+      ? PRICING.staticPosts.standardRate
+      : PRICING.staticPosts.bulkRate;
+
+    return postCount * ratePerPost;
+  }
+
   function readQuantity(input) {
     var raw = input.value.trim();
     var valid = /^\d+$/.test(raw);
@@ -130,7 +147,7 @@
     var management = managementToggle.checked;
     var mainContentCount = quantities.posts + quantities.video25 + quantities.video50;
     var managementTotal = management && selectedPlatforms.length ? PRICING.managementFirstPlatform + Math.max(selectedPlatforms.length - 1, 0) * PRICING.managementAdditionalPlatform : 0;
-    var postTotal = Math.min(quantities.posts, 10) * PRICING.postFirstTen + Math.max(quantities.posts - 10, 0) * PRICING.postAfterTen;
+    var postTotal = calculateStaticPostsPrice(quantities.posts);
     var total = managementTotal + postTotal + quantities.video25 * PRICING.video25 + quantities.video50 * PRICING.video50 + quantities.stories * PRICING.story;
     var youtube = getYoutubeState();
     var hasPrimaryContent = mainContentCount > 0 || youtube.valid;
@@ -305,6 +322,14 @@
   });
   form.addEventListener('input', update);
   form.addEventListener('change', update);
+
+  quantityInputs.posts.addEventListener('keydown', function (event) {
+    if (['e', 'E', '+', '-', '.'].includes(event.key)) event.preventDefault();
+  });
+  quantityInputs.posts.addEventListener('paste', function (event) {
+    var pasted = event.clipboardData ? event.clipboardData.getData('text').trim() : '';
+    if (!/^\d+$/.test(pasted) || Number(pasted) > PRICING.maximumQuantity) event.preventDefault();
+  });
 
   root.querySelectorAll('[data-quantity-control]').forEach(function (control) {
     control.addEventListener('click', function (event) {

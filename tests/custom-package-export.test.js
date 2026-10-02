@@ -8,8 +8,9 @@ const styles = fs.readFileSync('css/custom-package-builder.css', 'utf8');
 
 assert.match(script, /managementFirstPlatform:\s*7000/, 'Management base pricing must remain unchanged');
 assert.match(script, /managementAdditionalPlatform:\s*1000/, 'Additional-platform pricing must remain unchanged');
-assert.match(script, /postFirstTen:\s*1000/, 'Static-post pricing must remain unchanged');
-assert.match(script, /postAfterTen:\s*800/, 'Progressive static-post pricing must remain unchanged');
+assert.match(script, /standardRate:\s*1000/, 'Static-post standard pricing must remain configured');
+assert.match(script, /bulkRate:\s*800/, 'Static-post bulk pricing must remain configured');
+assert.match(script, /bulkRateStartsAt:\s*11/, 'Static-post bulk threshold must remain configured');
 assert.match(script, /video25:\s*2000/, '25-second video pricing must remain unchanged');
 assert.match(script, /video50:\s*3000/, '50-second video pricing must remain unchanged');
 assert.match(script, /story:\s*1400/, 'Story-video pricing must remain unchanged');

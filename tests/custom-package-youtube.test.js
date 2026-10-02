@@ -10,8 +10,9 @@ const styles = fs.readFileSync('css/custom-package-builder.css', 'utf8');
 // Existing prices are contract values and YouTube long-form must never alter them.
 assert.match(script, /managementFirstPlatform:\s*7000/);
 assert.match(script, /managementAdditionalPlatform:\s*1000/);
-assert.match(script, /postFirstTen:\s*1000/);
-assert.match(script, /postAfterTen:\s*800/);
+assert.match(script, /standardRate:\s*1000/);
+assert.match(script, /bulkRate:\s*800/);
+assert.match(script, /bulkRateStartsAt:\s*11/);
 assert.match(script, /video25:\s*2000/);
 assert.match(script, /video50:\s*3000/);
 assert.match(script, /story:\s*1400/);

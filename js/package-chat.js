@@ -21,7 +21,7 @@ const PACKAGE_CHAT_DATA = [
       'Monthly Performance Report'
     ],
     noteLabel: 'Important note',
-    note: 'Available exclusively to new clients for the first two months.',
+    note: 'Available exclusively to new clients for the first one month.',
     active: true
   },
   {
