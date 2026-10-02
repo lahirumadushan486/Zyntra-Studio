@@ -32,9 +32,10 @@ assert.match(script, /windowHeight:\s*exportHeight/, 'Export window height must 
 assert.match(script, /allowTaint:\s*false/, 'Cross-origin image capture must remain safe');
 assert.match(script, /document\.fonts\.ready/, 'Export must wait for fonts');
 assert.match(script, /image\.decode\(\)/, 'Export must wait for decoded visible images');
-assert.match(script, /if \(isExporting\) return;/, 'Concurrent downloads must be blocked');
+assert.match(script, /if \(isExporting \|\| isWhatsappSharing\) return;/, 'Concurrent downloads and WhatsApp renders must be blocked');
 assert.match(script, /downloadButton\.textContent = 'Preparing image…'/, 'Download must show a preparing state');
-assert.match(script, /finally\s*\{[\s\S]*exportCard\.remove\(\)[\s\S]*downloadLink\.remove\(\)[\s\S]*html2canvas-container[\s\S]*isExporting = false/, 'Temporary export resources must be cleaned up in finally');
+assert.match(script, /async function renderQuotationBlob\(\)[\s\S]*finally\s*\{[\s\S]*exportCard\.remove\(\)[\s\S]*html2canvas-container/, 'Shared renderer must clean temporary card resources in finally');
+assert.match(script, /downloadButton\.addEventListener[\s\S]*finally\s*\{[\s\S]*downloadLink\.remove\(\)[\s\S]*URL\.revokeObjectURL[\s\S]*isExporting = false/, 'Download resources must be cleaned up in finally');
 assert.doesNotMatch(script, /windowHeight:\s*document\.documentElement\.clientHeight/, 'Export must not use the mobile viewport height');
 
 assert.match(styles, /repeat\(auto-fit,minmax\(min\(100%,320px\),1fr\)\)/, 'Preview cards must stack when columns become too narrow');

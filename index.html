@@ -648,6 +648,28 @@
                   <button type="button" data-quantity-action="increase" aria-label="Increase story videos">+</button>
                 </div>
               </div>
+              <section class="custom-package-builder__ai-videos" aria-labelledby="custom-ai-videos-title">
+                <div class="custom-package-builder__ai-videos-header">
+                  <h3 id="custom-ai-videos-title">AI Videos</h3>
+                  <p>Select the AI video formats required for your package.</p>
+                </div>
+                <div class="custom-package-builder__ai-video-option">
+                  <div><h4>AI Video <span>up to 45 seconds</span></h4><p>AI-generated video with a maximum duration of 45 seconds.</p></div>
+                  <div class="custom-package-builder__quantity" data-quantity-control>
+                    <button type="button" data-quantity-action="decrease" aria-label="Decrease AI videos up to 45 seconds">&minus;</button>
+                    <label><span class="sr-only">AI video up to 45 seconds quantity</span><input id="custom-ai-video-45-count" inputmode="numeric" type="number" min="0" max="999" step="1" value="0"></label>
+                    <button type="button" data-quantity-action="increase" aria-label="Increase AI videos up to 45 seconds">+</button>
+                  </div>
+                </div>
+                <div class="custom-package-builder__ai-video-option">
+                  <div><h4>AI Video <span>up to 1.5 minutes</span></h4><p>AI-generated video with a maximum duration of 1.5 minutes.</p></div>
+                  <div class="custom-package-builder__quantity" data-quantity-control>
+                    <button type="button" data-quantity-action="decrease" aria-label="Decrease AI videos up to 1.5 minutes">&minus;</button>
+                    <label><span class="sr-only">AI video up to 1.5 minutes quantity</span><input id="custom-ai-video-90-count" inputmode="numeric" type="number" min="0" max="999" step="1" value="0"></label>
+                    <button type="button" data-quantity-action="increase" aria-label="Increase AI videos up to 1.5 minutes">+</button>
+                  </div>
+                </div>
+              </section>
             </div>
           </fieldset>
 
@@ -703,7 +725,7 @@
             <div><p class="custom-package-builder__total-label" id="custom-package-total-label">PACKAGE TOTAL</p><output class="custom-package-builder__total" id="custom-package-total" aria-live="polite">Rs. 0</output></div>
             <p class="custom-package-builder__notice" id="custom-package-notice">Advertising spend is not included in this content package.</p>
           </div>
-          <p class="custom-package-builder__validation" id="custom-package-validation" role="status" aria-live="polite">Choose at least one static post or professional video to create a package.</p>
+          <p class="custom-package-builder__validation" id="custom-package-validation" role="status" aria-live="polite">Choose at least one static post, professional video or AI video to create a package.</p>
           <button class="btn btn-primary custom-package-builder__create" id="custom-package-create" type="submit" disabled>Create My Package</button>
         </form>
       </div>
@@ -725,11 +747,22 @@
           <footer class="custom-package-card__footer">
             <div class="custom-package-card__price"><span id="custom-card-total-label">PACKAGE TOTAL</span><strong id="custom-card-total">Rs. 0</strong></div>
             <p id="custom-card-notice">Advertising spend is not included in this content package.</p>
-            <div class="custom-package-card__contact"><span>Call / WhatsApp: 070 600 4033</span><span>www.zyntrastudio.lk</span></div>
+            <div class="custom-package-card__contact"><span id="custom-card-whatsapp-contact"></span><span>www.zyntrastudio.lk</span></div>
           </footer>
         </article>
-        <button class="btn btn-outline custom-package-builder__download" id="custom-package-download" type="button">Download Package Image</button>
-        <p class="custom-package-builder__download-status" id="custom-package-download-status" role="status" aria-live="polite"></p>
+      </div>
+      <div class="custom-package-builder__quotation-actions" aria-label="Quotation actions">
+        <button class="btn btn-outline custom-package-builder__download" id="custom-package-download" type="button" hidden disabled>Download Package Image</button>
+        <button class="btn btn-primary custom-package-builder__whatsapp" id="custom-package-whatsapp" type="button" disabled>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.7 15L2 22l5.1-1.3A10 10 0 1 0 12 2Z"></path><path d="M8.1 7.6c.3-.7.6-.7.9-.7h.7c.2 0 .4.1.5.4l.9 2.1c.1.3.1.5-.1.7l-.7.8c-.2.2-.1.4 0 .6.8 1.4 1.9 2.5 3.4 3.2.3.1.5.1.7-.1l.9-1.1c.2-.2.4-.3.7-.2l2.1 1c.3.1.4.3.4.5 0 .3-.2 1.6-1.1 2.3-.8.7-1.9 1-3.1.7-1.1-.3-2.5-.8-4.3-2.4-2-1.8-3.3-4-3.7-5.1-.4-1.1 0-2.1.4-2.7.4-.5.9-.8 1.4-1Z"></path></svg>
+          <span>Send to WhatsApp</span>
+        </button>
+      </div>
+      <p class="custom-package-builder__download-status" id="custom-package-download-status" role="status" aria-live="polite"></p>
+      <p class="custom-package-builder__whatsapp-status" id="custom-package-whatsapp-status" role="status" aria-live="polite" aria-atomic="true"></p>
+      <div class="custom-package-builder__whatsapp-fallback" id="custom-package-whatsapp-fallback" hidden>
+        <button class="btn btn-outline" id="custom-package-whatsapp-retry" type="button">Try Again</button>
+        <button class="btn btn-outline" id="custom-package-whatsapp-text" type="button">Send Quotation Details Instead</button>
       </div>
     </div>
     </div>

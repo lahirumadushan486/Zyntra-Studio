@@ -15,10 +15,17 @@
     video25: 2000,
     video50: 3000,
     story: 1400,
+    aiVideo45: 3500,
+    aiVideo90: 5500,
     maximumQuantity: 999
   });
   var EXPORT_SCALE = 2;
   var EXPORT_WIDTH = 1080;
+  var WHATSAPP_CONFIG = Object.freeze({
+    companyNumber: '947046004033',
+    shareFunctionName: 'share-package-quotation',
+    maximumImageBytes: 8 * 1024 * 1024
+  });
 
   var form = root.querySelector('#custom-package-form');
   var managementToggle = root.querySelector('#custom-management-enabled');
@@ -28,7 +35,9 @@
     posts: root.querySelector('#custom-post-count'),
     video25: root.querySelector('#custom-video-25-count'),
     video50: root.querySelector('#custom-video-50-count'),
-    stories: root.querySelector('#custom-story-count')
+    stories: root.querySelector('#custom-story-count'),
+    aiVideo45: root.querySelector('#custom-ai-video-45-count'),
+    aiVideo90: root.querySelector('#custom-ai-video-90-count')
   };
   var youtubeToggle = root.querySelector('#custom-youtube-enabled');
   var youtubeDetails = root.querySelector('#custom-youtube-details');
@@ -60,18 +69,33 @@
   var cardTotalLabel = root.querySelector('#custom-card-total-label');
   var cardTotal = root.querySelector('#custom-card-total');
   var cardNotice = root.querySelector('#custom-card-notice');
+  var cardWhatsappContact = root.querySelector('#custom-card-whatsapp-contact');
   var downloadButton = root.querySelector('#custom-package-download');
   var downloadStatus = root.querySelector('#custom-package-download-status');
+  var whatsappButton = root.querySelector('#custom-package-whatsapp');
+  var whatsappButtonLabel = whatsappButton.querySelector('span');
+  var whatsappStatus = root.querySelector('#custom-package-whatsapp-status');
+  var whatsappFallback = root.querySelector('#custom-package-whatsapp-fallback');
+  var whatsappRetryButton = root.querySelector('#custom-package-whatsapp-retry');
+  var whatsappTextButton = root.querySelector('#custom-package-whatsapp-text');
   var shareButton = root.querySelector('#custom-package-share');
   var copyLinkButton = root.querySelector('#custom-package-copy-link');
   var shareStatus = root.querySelector('#custom-package-share-status');
   var hasGeneratedCard = false;
   var isExporting = false;
   var isSharing = false;
+  var isWhatsappSharing = false;
   var cardRevision = 0;
   var shareStatusTimer;
   var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
   var downloadButtonLabel = downloadButton.textContent;
+
+  function formatLocalWhatsappNumber(internationalNumber) {
+    var localNumber = internationalNumber.indexOf('94') === 0 ? '0' + internationalNumber.slice(2) : internationalNumber;
+    return localNumber.replace(/^(\d{3})(\d{4})(\d{4})$/, '$1 $2 $3');
+  }
+
+  cardWhatsappContact.textContent = 'Call / WhatsApp: ' + formatLocalWhatsappNumber(WHATSAPP_CONFIG.companyNumber);
 
   function formatRupees(amount) {
     return 'Rs. ' + amount.toLocaleString('en-US');
@@ -89,6 +113,13 @@
       : PRICING.staticPosts.bulkRate;
 
     return postCount * ratePerPost;
+  }
+
+  function calculateAiVideosPrice(aiVideo45Quantity, aiVideo90Quantity) {
+    var aiVideo45Count = Math.max(0, Math.floor(Number(aiVideo45Quantity) || 0));
+    var aiVideo90Count = Math.max(0, Math.floor(Number(aiVideo90Quantity) || 0));
+
+    return aiVideo45Count * PRICING.aiVideo45 + aiVideo90Count * PRICING.aiVideo90;
   }
 
   function readQuantity(input) {
@@ -145,10 +176,11 @@
     });
     var selectedPlatforms = platformInputs.filter(function (input) { return input.checked; }).map(function (input) { return input.value; });
     var management = managementToggle.checked;
-    var mainContentCount = quantities.posts + quantities.video25 + quantities.video50;
+    var mainContentCount = quantities.posts + quantities.video25 + quantities.video50 + quantities.aiVideo45 + quantities.aiVideo90;
     var managementTotal = management && selectedPlatforms.length ? PRICING.managementFirstPlatform + Math.max(selectedPlatforms.length - 1, 0) * PRICING.managementAdditionalPlatform : 0;
     var postTotal = calculateStaticPostsPrice(quantities.posts);
-    var total = managementTotal + postTotal + quantities.video25 * PRICING.video25 + quantities.video50 * PRICING.video50 + quantities.stories * PRICING.story;
+    var aiVideoTotal = calculateAiVideosPrice(quantities.aiVideo45, quantities.aiVideo90);
+    var total = managementTotal + postTotal + quantities.video25 * PRICING.video25 + quantities.video50 * PRICING.video50 + quantities.stories * PRICING.story + aiVideoTotal;
     var youtube = getYoutubeState();
     var hasPrimaryContent = mainContentCount > 0 || youtube.valid;
     var valid = quantitiesValid && hasPrimaryContent && (!management || selectedPlatforms.length > 0) && (!youtube.enabled || youtube.valid);
@@ -156,9 +188,9 @@
     if (!quantitiesValid) message = 'Enter whole-number quantities from 0 to ' + PRICING.maximumQuantity + '.';
     else if (youtube.enabled && !youtube.durationsValid) message = 'Enter a whole-number duration from 1 to 180 minutes for every YouTube video.';
     else if (youtube.enabled && !youtube.editingTypeValid) message = 'Select an editing type for YouTube long-form video editing.';
-    else if (!hasPrimaryContent && quantities.stories > 0) message = 'Story videos are an add-on. Add a static post, professional video or valid YouTube long-form request.';
-    else if (!hasPrimaryContent && management) message = 'Management requires a static post, professional video or valid YouTube long-form request.';
-    else if (!hasPrimaryContent) message = 'Choose a static post, professional video or YouTube long-form editing request to create a package.';
+    else if (!hasPrimaryContent && quantities.stories > 0) message = 'Story videos are an add-on. Add a static post, professional video, AI video or valid YouTube long-form request.';
+    else if (!hasPrimaryContent && management) message = 'Management requires a static post, professional video, AI video or valid YouTube long-form request.';
+    else if (!hasPrimaryContent) message = 'Choose a static post, professional video, AI video or YouTube long-form editing request to create a package.';
     else if (management && selectedPlatforms.length === 0) message = 'Select at least one platform for social media management.';
     return { quantities: quantities, quantitiesValid: quantitiesValid, platforms: selectedPlatforms, management: management, youtube: youtube, total: total, quoteOnly: youtube.enabled && total === 0, valid: valid, message: message };
   }
@@ -180,6 +212,8 @@
     if (state.quantities.video25 > 0) selectedItems.push(['Professional Videos · up to 25 seconds', state.quantities.video25 + (state.quantities.video25 === 1 ? ' video · Text animation, colour grading and professional editing' : ' videos · Text animation, colour grading and professional editing')]);
     if (state.quantities.video50 > 0) selectedItems.push(['Professional Videos · up to 50 seconds', state.quantities.video50 + (state.quantities.video50 === 1 ? ' video · Longer-form professional editing and colour grading' : ' videos · Longer-form professional editing and colour grading')]);
     if (state.quantities.stories > 0) selectedItems.push(['Simple Story Videos · up to 30 seconds', state.quantities.stories + (state.quantities.stories === 1 ? ' story video · Simple story-style editing' : ' story videos · Simple story-style editing')]);
+    if (state.quantities.aiVideo45 > 0) selectedItems.push(['AI Videos up to 45 seconds:', String(state.quantities.aiVideo45)]);
+    if (state.quantities.aiVideo90 > 0) selectedItems.push(['AI Videos up to 1.5 minutes:', String(state.quantities.aiVideo90)]);
     selectedItems.forEach(function (item) {
       var li = document.createElement('li');
       var strong = document.createElement('strong');
@@ -223,14 +257,17 @@
     validation.classList.toggle('is-valid', state.valid);
     validation.classList.toggle('is-error', !state.valid && (state.quantities.stories > 0 || state.management || state.youtube.enabled || !state.quantitiesValid));
     createButton.disabled = !state.valid;
+    whatsappButton.disabled = !state.valid || isWhatsappSharing || isExporting;
     if (hasGeneratedCard) {
       if (state.valid) {
         updateCard(state);
         result.hidden = false;
+        downloadButton.hidden = false;
         downloadButton.disabled = isExporting;
         downloadStatus.textContent = 'Package card updated to match your latest selection.';
       } else {
         result.hidden = true;
+        downloadButton.hidden = true;
         downloadButton.disabled = true;
       }
     }
@@ -323,13 +360,17 @@
   form.addEventListener('input', update);
   form.addEventListener('change', update);
 
-  quantityInputs.posts.addEventListener('keydown', function (event) {
-    if (['e', 'E', '+', '-', '.'].includes(event.key)) event.preventDefault();
-  });
-  quantityInputs.posts.addEventListener('paste', function (event) {
-    var pasted = event.clipboardData ? event.clipboardData.getData('text').trim() : '';
-    if (!/^\d+$/.test(pasted) || Number(pasted) > PRICING.maximumQuantity) event.preventDefault();
-  });
+  function addWholeQuantityInputGuards(input) {
+    input.addEventListener('keydown', function (event) {
+      if (['e', 'E', '+', '-', '.'].includes(event.key)) event.preventDefault();
+    });
+    input.addEventListener('paste', function (event) {
+      var pasted = event.clipboardData ? event.clipboardData.getData('text').trim() : '';
+      if (!/^\d+$/.test(pasted) || Number(pasted) > PRICING.maximumQuantity) event.preventDefault();
+    });
+  }
+
+  [quantityInputs.posts, quantityInputs.aiVideo45, quantityInputs.aiVideo90].forEach(addWholeQuantityInputGuards);
 
   root.querySelectorAll('[data-quantity-control]').forEach(function (control) {
     control.addEventListener('click', function (event) {
@@ -351,6 +392,7 @@
     hasGeneratedCard = true;
     updateCard(state);
     result.hidden = false;
+    downloadButton.hidden = false;
     downloadButton.disabled = isExporting;
     downloadStatus.textContent = '';
     result.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
@@ -418,6 +460,8 @@
     url.searchParams.set('video25', String(state.quantities.video25));
     url.searchParams.set('video50', String(state.quantities.video50));
     url.searchParams.set('stories', String(state.quantities.stories));
+    url.searchParams.set('aiVideo45', String(state.quantities.aiVideo45));
+    url.searchParams.set('aiVideo90', String(state.quantities.aiVideo90));
     if (state.management) {
       url.searchParams.set('management', '1');
       url.searchParams.set('platforms', state.platforms.join(','));
@@ -448,6 +492,8 @@
     quantityInputs.video25.value = String(readSharedInteger(params, 'video25', 0, PRICING.maximumQuantity, 0));
     quantityInputs.video50.value = String(readSharedInteger(params, 'video50', 0, PRICING.maximumQuantity, 0));
     quantityInputs.stories.value = String(readSharedInteger(params, 'stories', 0, PRICING.maximumQuantity, 0));
+    quantityInputs.aiVideo45.value = String(readSharedInteger(params, 'aiVideo45', 0, PRICING.maximumQuantity, 0));
+    quantityInputs.aiVideo90.value = String(readSharedInteger(params, 'aiVideo90', 0, PRICING.maximumQuantity, 0));
 
     var allowedPlatforms = platformInputs.map(function (input) { return input.value; });
     var sharedPlatforms = (params.get('platforms') || '').split(',').filter(function (platform, index, values) {
@@ -581,21 +627,10 @@
     });
   }
 
-  downloadButton.addEventListener('click', async function () {
-    if (isExporting) return;
-    var state = update();
-    if (!state.valid || !hasGeneratedCard) return;
-    updateCard(state);
-    isExporting = true;
-    downloadButton.disabled = true;
-    downloadButton.textContent = 'Preparing image…';
-    downloadStatus.textContent = 'Preparing your high-quality package image…';
+  async function renderQuotationBlob() {
     removeLegacyExportHosts();
-
     var canvas;
     var exportCard;
-    var downloadLink;
-    var objectUrl;
     var existingCloneContainers = new Set(document.querySelectorAll('.html2canvas-container'));
     var cloneObserver = typeof MutationObserver === 'function' ? new MutationObserver(function (records) {
       records.forEach(function (record) {
@@ -655,7 +690,160 @@
         }
       } while (renderedRevision !== cardRevision);
 
-      var blob = await canvasToBlob(canvas);
+      return await canvasToBlob(canvas);
+    } finally {
+      if (cloneObserver) cloneObserver.disconnect();
+      if (exportCard) exportCard.remove();
+      if (canvas) {
+        canvas.width = 0;
+        canvas.height = 0;
+      }
+      document.querySelectorAll('.html2canvas-container').forEach(function (element) {
+        if (!existingCloneContainers.has(element)) element.remove();
+      });
+      removeLegacyExportHosts();
+    }
+  }
+
+  function getQuotationShareEndpoint() {
+    if (typeof SUPABASE_URL !== 'string' || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(SUPABASE_URL)) {
+      throw new Error('Secure quotation sharing is not configured.');
+    }
+    return SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/' + WHATSAPP_CONFIG.shareFunctionName;
+  }
+
+  function getQuotationShareHeaders() {
+    if (typeof SUPABASE_PUBLISHABLE_KEY !== 'string' || !SUPABASE_PUBLISHABLE_KEY) {
+      throw new Error('Secure quotation sharing is not configured.');
+    }
+    return { apikey: SUPABASE_PUBLISHABLE_KEY };
+  }
+
+  function getShareablePackageState(state) {
+    return {
+      quantities: {
+        posts: state.quantities.posts,
+        video25: state.quantities.video25,
+        video50: state.quantities.video50,
+        stories: state.quantities.stories,
+        aiVideo45: state.quantities.aiVideo45,
+        aiVideo90: state.quantities.aiVideo90
+      },
+      platforms: state.platforms.slice(),
+      management: state.management,
+      youtube: {
+        enabled: state.youtube.enabled,
+        videos: state.youtube.videos.map(function (video) { return { durationMinutes: video.durationMinutes }; }),
+        editingType: state.youtube.editingType,
+        addOns: state.youtube.addOns.slice()
+      }
+    };
+  }
+
+  async function uploadQuotationImage(blob, state) {
+    if (!(blob instanceof Blob) || blob.type !== 'image/png' || blob.size < 1 || blob.size > WHATSAPP_CONFIG.maximumImageBytes) {
+      throw new Error('The quotation image is too large or invalid.');
+    }
+    var controller = typeof AbortController === 'function' ? new AbortController() : null;
+    var timeout = controller ? window.setTimeout(function () { controller.abort(); }, 30000) : null;
+    var body = new FormData();
+    body.append('quotation', blob, 'quotation.png');
+    body.append('state', JSON.stringify(getShareablePackageState(state)));
+    try {
+      var response = await fetch(getQuotationShareEndpoint(), {
+        method: 'POST',
+        headers: getQuotationShareHeaders(),
+        body: body,
+        signal: controller ? controller.signal : undefined,
+        cache: 'no-store',
+        credentials: 'omit'
+      });
+      var data = await response.json().catch(function () { return {}; });
+      if (!response.ok || !data || data.success !== true || typeof data.url !== 'string' || !/^https:\/\//i.test(data.url)) {
+        throw new Error(typeof data.error === 'string' ? data.error : 'The quotation image could not be uploaded securely.');
+      }
+      if (!Number.isSafeInteger(data.total) || data.total !== state.total) {
+        throw new Error('The secure quotation total did not match the current package.');
+      }
+      return data;
+    } finally {
+      if (timeout) window.clearTimeout(timeout);
+    }
+  }
+
+  function buildWhatsAppMessage(state, quotationUrl, verifiedTotal) {
+    var lines = [
+      'Hello Zyntra Studio,',
+      '',
+      'I created a custom package through your website. Please review my quotation.',
+      ''
+    ];
+    if (state.platforms.length) lines.push('Platforms: ' + state.platforms.join(', '));
+    if (state.quantities.posts > 0) lines.push('Static Posts: ' + state.quantities.posts);
+    if (state.quantities.video25 > 0) lines.push('Professional Videos up to 25 seconds: ' + state.quantities.video25);
+    if (state.quantities.video50 > 0) lines.push('Professional Videos up to 50 seconds: ' + state.quantities.video50);
+    if (state.quantities.stories > 0) lines.push('Simple Story Videos: ' + state.quantities.stories);
+    if (state.quantities.aiVideo45 > 0) lines.push('AI Videos up to 45 seconds: ' + state.quantities.aiVideo45);
+    if (state.quantities.aiVideo90 > 0) lines.push('AI Videos up to 1.5 minutes: ' + state.quantities.aiVideo90);
+    if (state.youtube.enabled) {
+      var youtubeDetails = state.youtube.videoCount + (state.youtube.videoCount === 1 ? ' video' : ' videos') +
+        '; durations: ' + state.youtube.videos.map(function (video) { return video.durationMinutes + ' min'; }).join(', ') +
+        '; editing: ' + state.youtube.editingTypeLabel;
+      if (state.youtube.addOns.length) youtubeDetails += '; requirements: ' + state.youtube.addOns.map(function (key) { return YOUTUBE_ADDONS[key]; }).join(', ');
+      lines.push('YouTube Long-Form Videos: ' + youtubeDetails);
+    }
+    if (state.management) lines.push('Social Media Management: Included');
+    lines.push('', 'FINAL PACKAGE TOTAL', state.quoteOnly ? 'CUSTOM QUOTE REQUIRED' : formatRupees(verifiedTotal));
+    if (quotationUrl) lines.push('', 'Quotation: ' + quotationUrl);
+    lines.push('', 'I would like to discuss this package.');
+    return lines.join('\n');
+  }
+
+  function openWhatsApp(message, preparedWindow) {
+    var whatsappUrl = 'https://wa.me/' + WHATSAPP_CONFIG.companyNumber + '?text=' + encodeURIComponent(message);
+    if (preparedWindow && !preparedWindow.closed) {
+      preparedWindow.location.replace(whatsappUrl);
+    } else {
+      window.location.assign(whatsappUrl);
+    }
+  }
+
+  function prepareWhatsappWindow() {
+    var preparedWindow = window.open('about:blank', 'zyntra-package-whatsapp');
+    if (preparedWindow) preparedWindow.opener = null;
+    return preparedWindow;
+  }
+
+  function setFormBusy(isBusy) {
+    var controls = Array.prototype.slice.call(form.querySelectorAll('input, button'));
+    if (isBusy) {
+      controls.forEach(function (control) {
+        control.dataset.whatsappWasDisabled = control.disabled ? '1' : '0';
+        control.disabled = true;
+      });
+    } else {
+      controls.forEach(function (control) {
+        control.disabled = control.dataset.whatsappWasDisabled === '1';
+        delete control.dataset.whatsappWasDisabled;
+      });
+    }
+  }
+
+  downloadButton.addEventListener('click', async function () {
+    if (isExporting || isWhatsappSharing) return;
+    var state = update();
+    if (!state.valid || !hasGeneratedCard) return;
+    updateCard(state);
+    isExporting = true;
+    downloadButton.disabled = true;
+    whatsappButton.disabled = true;
+    downloadButton.textContent = 'Preparing image…';
+    downloadStatus.textContent = 'Preparing your high-quality package image…';
+
+    var downloadLink;
+    var objectUrl;
+    try {
+      var blob = await renderQuotationBlob();
       objectUrl = URL.createObjectURL(blob);
       downloadLink = document.createElement('a');
       downloadLink.href = objectUrl;
@@ -671,23 +859,85 @@
         ? error.message
         : 'The package image could not be downloaded. Please try again.';
     } finally {
-      if (cloneObserver) cloneObserver.disconnect();
-      if (exportCard) exportCard.remove();
       if (downloadLink) downloadLink.remove();
       if (objectUrl) window.setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 30000);
-      if (canvas) {
-        canvas.width = 0;
-        canvas.height = 0;
-      }
-      document.querySelectorAll('.html2canvas-container').forEach(function (element) {
-        if (!existingCloneContainers.has(element)) element.remove();
-      });
-      removeLegacyExportHosts();
       isExporting = false;
       downloadButton.textContent = downloadButtonLabel;
       var latestState = getState();
       downloadButton.disabled = !hasGeneratedCard || !latestState.valid;
+      whatsappButton.disabled = !latestState.valid;
     }
+  });
+
+  whatsappButton.addEventListener('click', async function () {
+    if (isWhatsappSharing || isExporting) return;
+    var state = update();
+    if (!state.valid) {
+      whatsappStatus.textContent = state.message;
+      whatsappStatus.classList.add('is-error');
+      return;
+    }
+
+    hasGeneratedCard = true;
+    updateCard(state);
+    result.hidden = false;
+    downloadButton.hidden = false;
+    downloadButton.disabled = true;
+    isWhatsappSharing = true;
+    isExporting = true;
+    whatsappButton.disabled = true;
+    whatsappFallback.hidden = true;
+    whatsappStatus.classList.remove('is-error');
+    whatsappStatus.textContent = 'Preparing your latest quotation image…';
+    whatsappButtonLabel.textContent = 'Preparing Quotation…';
+    setFormBusy(true);
+    var preparedWindow = prepareWhatsappWindow();
+
+    try {
+      var blob = await renderQuotationBlob();
+      whatsappButtonLabel.textContent = 'Opening WhatsApp…';
+      whatsappStatus.textContent = 'Uploading the quotation securely…';
+      var shared = await uploadQuotationImage(blob, state);
+      openWhatsApp(buildWhatsAppMessage(state, shared.url, shared.total), preparedWindow);
+      whatsappStatus.textContent = 'Your latest quotation is ready in WhatsApp.';
+    } catch (error) {
+      if (preparedWindow && !preparedWindow.closed) preparedWindow.close();
+      whatsappStatus.textContent = error && error.message
+        ? error.message + ' You can retry or send the quotation details as text.'
+        : 'The quotation could not be shared. You can retry or send the quotation details as text.';
+      whatsappStatus.classList.add('is-error');
+      whatsappFallback.hidden = false;
+    } finally {
+      setFormBusy(false);
+      isWhatsappSharing = false;
+      isExporting = false;
+      whatsappButtonLabel.textContent = 'Send to WhatsApp';
+      var latestState = update();
+      whatsappButton.disabled = !latestState.valid;
+      downloadButton.disabled = !hasGeneratedCard || !latestState.valid;
+    }
+  });
+
+  whatsappRetryButton.addEventListener('click', function () {
+    whatsappFallback.hidden = true;
+    whatsappButton.click();
+  });
+
+  whatsappTextButton.addEventListener('click', function () {
+    var state = update();
+    if (!state.valid) {
+      whatsappStatus.textContent = state.message;
+      whatsappStatus.classList.add('is-error');
+      return;
+    }
+    hasGeneratedCard = true;
+    updateCard(state);
+    result.hidden = false;
+    downloadButton.hidden = false;
+    whatsappFallback.hidden = true;
+    whatsappStatus.classList.remove('is-error');
+    whatsappStatus.textContent = 'Quotation details were shared as text; no image was uploaded.';
+    openWhatsApp(buildWhatsAppMessage(state, '', state.total), prepareWhatsappWindow());
   });
 
   var restoredSharedPackage = restoreSharedPackageState();
@@ -697,6 +947,7 @@
     hasGeneratedCard = true;
     updateCard(initialState);
     result.hidden = false;
+    downloadButton.hidden = false;
     downloadButton.disabled = false;
   }
 }());

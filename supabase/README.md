@@ -53,7 +53,20 @@ supabase functions deploy manage-client-login-id
 supabase functions deploy manage-client-profile
 supabase functions deploy login-with-client-id --no-verify-jwt
 supabase functions deploy register-client
+supabase functions deploy share-package-quotation --no-verify-jwt
 ```
+
+Before deploying `share-package-quotation`, run `quotation-share-setup.sql` in
+SQL Editor. Supabase supplies the publishable and secret key dictionaries to the
+Edge Function automatically; no privileged key is stored in this repository.
+
+The quotation function is public because customers do not sign in, but it
+allows only the production/local site origins, requires the site publishable
+key, validates renderer-sized PNG files up to 8 MB, independently validates and
+recalculates package state, applies a hashed-client rate limit, stores random
+UUID filenames in the private `quotation-images` bucket, returns seven-day
+signed URLs, and removes expired images opportunistically. If it is unavailable,
+the website offers a WhatsApp text-only quotation instead of an insecure upload.
 
 Supabase supplies `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and
 `SUPABASE_SERVICE_ROLE_KEY` to Edge Functions. The service-role key must never
