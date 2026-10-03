@@ -22,9 +22,7 @@
   var EXPORT_SCALE = 2;
   var EXPORT_WIDTH = 1080;
   var WHATSAPP_CONFIG = Object.freeze({
-    companyNumber: '947046004033',
-    shareFunctionName: 'share-package-quotation',
-    maximumImageBytes: 8 * 1024 * 1024
+    companyNumber: '947046004033'
   });
 
   var form = root.querySelector('#custom-package-form');
@@ -75,9 +73,6 @@
   var whatsappButton = root.querySelector('#custom-package-whatsapp');
   var whatsappButtonLabel = whatsappButton.querySelector('span');
   var whatsappStatus = root.querySelector('#custom-package-whatsapp-status');
-  var whatsappFallback = root.querySelector('#custom-package-whatsapp-fallback');
-  var whatsappRetryButton = root.querySelector('#custom-package-whatsapp-retry');
-  var whatsappTextButton = root.querySelector('#custom-package-whatsapp-text');
   var shareButton = root.querySelector('#custom-package-share');
   var copyLinkButton = root.querySelector('#custom-package-copy-link');
   var shareStatus = root.querySelector('#custom-package-share-status');
@@ -85,6 +80,8 @@
   var isExporting = false;
   var isSharing = false;
   var isWhatsappSharing = false;
+  var preparedWhatsappUrl = '';
+  var whatsappResetTimer;
   var cardRevision = 0;
   var shareStatusTimer;
   var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
@@ -250,6 +247,7 @@
 
   function update() {
     var state = getState();
+    preparedWhatsappUrl = state.valid ? buildWhatsappUrl(buildWhatsAppMessage(state, '')) : '';
     totalLabel.textContent = state.quoteOnly ? 'YOUTUBE EDITING' : (state.management ? 'MONTHLY PACKAGE TOTAL' : 'PACKAGE TOTAL');
     totalOutput.textContent = state.quoteOnly ? 'CUSTOM QUOTE REQUIRED' : (state.quantitiesValid ? formatRupees(state.total) : 'Rs. —');
     notice.textContent = getPackageNotice(state);
@@ -705,73 +703,7 @@
     }
   }
 
-  function getQuotationShareEndpoint() {
-    if (typeof SUPABASE_URL !== 'string' || !/^https:\/\/[a-z0-9-]+\.supabase\.co$/i.test(SUPABASE_URL)) {
-      throw new Error('Secure quotation sharing is not configured.');
-    }
-    return SUPABASE_URL.replace(/\/$/, '') + '/functions/v1/' + WHATSAPP_CONFIG.shareFunctionName;
-  }
-
-  function getQuotationShareHeaders() {
-    if (typeof SUPABASE_PUBLISHABLE_KEY !== 'string' || !SUPABASE_PUBLISHABLE_KEY) {
-      throw new Error('Secure quotation sharing is not configured.');
-    }
-    return { apikey: SUPABASE_PUBLISHABLE_KEY };
-  }
-
-  function getShareablePackageState(state) {
-    return {
-      quantities: {
-        posts: state.quantities.posts,
-        video25: state.quantities.video25,
-        video50: state.quantities.video50,
-        stories: state.quantities.stories,
-        aiVideo45: state.quantities.aiVideo45,
-        aiVideo90: state.quantities.aiVideo90
-      },
-      platforms: state.platforms.slice(),
-      management: state.management,
-      youtube: {
-        enabled: state.youtube.enabled,
-        videos: state.youtube.videos.map(function (video) { return { durationMinutes: video.durationMinutes }; }),
-        editingType: state.youtube.editingType,
-        addOns: state.youtube.addOns.slice()
-      }
-    };
-  }
-
-  async function uploadQuotationImage(blob, state) {
-    if (!(blob instanceof Blob) || blob.type !== 'image/png' || blob.size < 1 || blob.size > WHATSAPP_CONFIG.maximumImageBytes) {
-      throw new Error('The quotation image is too large or invalid.');
-    }
-    var controller = typeof AbortController === 'function' ? new AbortController() : null;
-    var timeout = controller ? window.setTimeout(function () { controller.abort(); }, 30000) : null;
-    var body = new FormData();
-    body.append('quotation', blob, 'quotation.png');
-    body.append('state', JSON.stringify(getShareablePackageState(state)));
-    try {
-      var response = await fetch(getQuotationShareEndpoint(), {
-        method: 'POST',
-        headers: getQuotationShareHeaders(),
-        body: body,
-        signal: controller ? controller.signal : undefined,
-        cache: 'no-store',
-        credentials: 'omit'
-      });
-      var data = await response.json().catch(function () { return {}; });
-      if (!response.ok || !data || data.success !== true || typeof data.url !== 'string' || !/^https:\/\//i.test(data.url)) {
-        throw new Error(typeof data.error === 'string' ? data.error : 'The quotation image could not be uploaded securely.');
-      }
-      if (!Number.isSafeInteger(data.total) || data.total !== state.total) {
-        throw new Error('The secure quotation total did not match the current package.');
-      }
-      return data;
-    } finally {
-      if (timeout) window.clearTimeout(timeout);
-    }
-  }
-
-  function buildWhatsAppMessage(state, quotationUrl, verifiedTotal) {
+  function buildWhatsAppMessage(state, quotationUrl) {
     var lines = [
       'Hello Zyntra Studio,',
       '',
@@ -793,40 +725,23 @@
       lines.push('YouTube Long-Form Videos: ' + youtubeDetails);
     }
     if (state.management) lines.push('Social Media Management: Included');
-    lines.push('', 'FINAL PACKAGE TOTAL', state.quoteOnly ? 'CUSTOM QUOTE REQUIRED' : formatRupees(verifiedTotal));
-    if (quotationUrl) lines.push('', 'Quotation: ' + quotationUrl);
+    lines.push('', 'FINAL PACKAGE TOTAL', state.quoteOnly ? 'CUSTOM QUOTE REQUIRED' : formatRupees(state.total));
+    if (quotationUrl) lines.push('', 'Quotation Image: ' + quotationUrl);
     lines.push('', 'I would like to discuss this package.');
     return lines.join('\n');
   }
 
-  function openWhatsApp(message, preparedWindow) {
-    var whatsappUrl = 'https://wa.me/' + WHATSAPP_CONFIG.companyNumber + '?text=' + encodeURIComponent(message);
-    if (preparedWindow && !preparedWindow.closed) {
-      preparedWindow.location.replace(whatsappUrl);
-    } else {
-      window.location.assign(whatsappUrl);
-    }
+  function buildWhatsappUrl(message) {
+    return 'https://wa.me/' + WHATSAPP_CONFIG.companyNumber + '?text=' + encodeURIComponent(message);
   }
 
-  function prepareWhatsappWindow() {
-    var preparedWindow = window.open('about:blank', 'zyntra-package-whatsapp');
-    if (preparedWindow) preparedWindow.opener = null;
-    return preparedWindow;
-  }
-
-  function setFormBusy(isBusy) {
-    var controls = Array.prototype.slice.call(form.querySelectorAll('input, button'));
-    if (isBusy) {
-      controls.forEach(function (control) {
-        control.dataset.whatsappWasDisabled = control.disabled ? '1' : '0';
-        control.disabled = true;
-      });
-    } else {
-      controls.forEach(function (control) {
-        control.disabled = control.dataset.whatsappWasDisabled === '1';
-        delete control.dataset.whatsappWasDisabled;
-      });
-    }
+  function resetWhatsAppButton() {
+    if (whatsappResetTimer) window.clearTimeout(whatsappResetTimer);
+    whatsappResetTimer = null;
+    isWhatsappSharing = false;
+    whatsappButtonLabel.textContent = 'Send to WhatsApp';
+    var latestState = update();
+    whatsappButton.disabled = !latestState.valid || isExporting;
   }
 
   downloadButton.addEventListener('click', async function () {
@@ -869,7 +784,7 @@
     }
   });
 
-  whatsappButton.addEventListener('click', async function () {
+  whatsappButton.addEventListener('click', function () {
     if (isWhatsappSharing || isExporting) return;
     var state = update();
     if (!state.valid) {
@@ -882,63 +797,18 @@
     updateCard(state);
     result.hidden = false;
     downloadButton.hidden = false;
-    downloadButton.disabled = true;
     isWhatsappSharing = true;
-    isExporting = true;
     whatsappButton.disabled = true;
-    whatsappFallback.hidden = true;
     whatsappStatus.classList.remove('is-error');
-    whatsappStatus.textContent = 'Preparing your latest quotation image…';
-    whatsappButtonLabel.textContent = 'Preparing Quotation…';
-    setFormBusy(true);
-    var preparedWindow = prepareWhatsappWindow();
+    whatsappStatus.textContent = '';
+    whatsappButtonLabel.textContent = 'Opening WhatsApp…';
 
-    try {
-      var blob = await renderQuotationBlob();
-      whatsappButtonLabel.textContent = 'Opening WhatsApp…';
-      whatsappStatus.textContent = 'Uploading the quotation securely…';
-      var shared = await uploadQuotationImage(blob, state);
-      openWhatsApp(buildWhatsAppMessage(state, shared.url, shared.total), preparedWindow);
-      whatsappStatus.textContent = 'Your latest quotation is ready in WhatsApp.';
-    } catch (error) {
-      if (preparedWindow && !preparedWindow.closed) preparedWindow.close();
-      whatsappStatus.textContent = error && error.message
-        ? error.message + ' You can retry or send the quotation details as text.'
-        : 'The quotation could not be shared. You can retry or send the quotation details as text.';
-      whatsappStatus.classList.add('is-error');
-      whatsappFallback.hidden = false;
-    } finally {
-      setFormBusy(false);
-      isWhatsappSharing = false;
-      isExporting = false;
-      whatsappButtonLabel.textContent = 'Send to WhatsApp';
-      var latestState = update();
-      whatsappButton.disabled = !latestState.valid;
-      downloadButton.disabled = !hasGeneratedCard || !latestState.valid;
-    }
+    var whatsappUrl = preparedWhatsappUrl;
+    whatsappResetTimer = window.setTimeout(resetWhatsAppButton, 1500);
+    window.location.assign(whatsappUrl);
   });
 
-  whatsappRetryButton.addEventListener('click', function () {
-    whatsappFallback.hidden = true;
-    whatsappButton.click();
-  });
-
-  whatsappTextButton.addEventListener('click', function () {
-    var state = update();
-    if (!state.valid) {
-      whatsappStatus.textContent = state.message;
-      whatsappStatus.classList.add('is-error');
-      return;
-    }
-    hasGeneratedCard = true;
-    updateCard(state);
-    result.hidden = false;
-    downloadButton.hidden = false;
-    whatsappFallback.hidden = true;
-    whatsappStatus.classList.remove('is-error');
-    whatsappStatus.textContent = 'Quotation details were shared as text; no image was uploaded.';
-    openWhatsApp(buildWhatsAppMessage(state, '', state.total), prepareWhatsappWindow());
-  });
+  window.addEventListener('pageshow', resetWhatsAppButton);
 
   var restoredSharedPackage = restoreSharedPackageState();
   renderYoutubeDurations();
