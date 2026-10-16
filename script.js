@@ -2,6 +2,10 @@
 // Central brand logo configuration — replace only this value when the final logo URL is ready.
 const BRAND_LOGO_URL = "https://res.cloudinary.com/tqdnopaj/image/upload/v1788956884/1080x1080_logo.jpg";
 
+const SOCIAL_LINKS = Object.freeze({
+  facebook: "https://www.facebook.com/zyntrastudio97"
+});
+
 // Public Supabase configuration for customer reviews. Never place a service_role key here.
 const SUPABASE_URL = "https://mdtzjtirfzpimwwbfczk.supabase.co";
 const SUPABASE_PUBLISHABLE_KEY = "sb_publishable_Ay78D_983Nz34vIG2KQGyg_q1oAfiqX";
@@ -78,7 +82,15 @@ document.addEventListener('DOMContentLoaded', function () {
     logoProbe.src = BRAND_LOGO_URL;
   }
 
+  function initializeSocialLinks() {
+    document.querySelectorAll('[data-social-link]').forEach(function (link) {
+      var platform = link.getAttribute('data-social-link');
+      if (Object.prototype.hasOwnProperty.call(SOCIAL_LINKS, platform)) link.href = SOCIAL_LINKS[platform];
+    });
+  }
+
   initializeBrandLogos();
+  initializeSocialLinks();
 
   var reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
   var isReduced = reducedMotion.matches;

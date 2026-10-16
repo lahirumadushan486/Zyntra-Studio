@@ -76,7 +76,11 @@
   var shareButton = root.querySelector('#custom-package-share');
   var copyLinkButton = root.querySelector('#custom-package-copy-link');
   var shareStatus = root.querySelector('#custom-package-share-status');
-  var hasGeneratedCard = false;
+  var draftSelection = null;
+  var generatedSelection = null;
+  var generatedTotal = null;
+  var isGenerated = false;
+  var isDirty = false;
   var isExporting = false;
   var isSharing = false;
   var isWhatsappSharing = false;
@@ -154,16 +158,17 @@
   function getPackageNotice(state) {
     var messages = [];
     if (state.youtube.enabled) {
-      messages.push(state.quoteOnly
+      if (typeof state.quoteOnly !== 'boolean') messages.push('YouTube long-form video editing will be quoted separately according to its duration and editing requirements.');
+      else messages.push(state.quoteOnly
         ? 'Submit or share these requirements with Zyntra Studio to receive the final quotation.'
-        : 'The displayed total does not include YouTube long-form video editing. Its final price will be confirmed separately.');
+        : 'The package total does not include YouTube long-form video editing. Its final price will be confirmed separately.');
     }
     if (state.management) messages.push('Ad boosting support is included. Advertising spend/ad budget is not included and will be discussed separately because platform rates can change.');
     else if (!state.youtube.enabled) messages.push('Advertising spend is not included in this content package.');
     return messages.join(' ');
   }
 
-  function getState() {
+  function readDraftSelection() {
     var quantities = {};
     var quantitiesValid = true;
     Object.keys(quantityInputs).forEach(function (key) {
@@ -174,10 +179,6 @@
     var selectedPlatforms = platformInputs.filter(function (input) { return input.checked; }).map(function (input) { return input.value; });
     var management = managementToggle.checked;
     var mainContentCount = quantities.posts + quantities.video25 + quantities.video50 + quantities.aiVideo45 + quantities.aiVideo90;
-    var managementTotal = management && selectedPlatforms.length ? PRICING.managementFirstPlatform + Math.max(selectedPlatforms.length - 1, 0) * PRICING.managementAdditionalPlatform : 0;
-    var postTotal = calculateStaticPostsPrice(quantities.posts);
-    var aiVideoTotal = calculateAiVideosPrice(quantities.aiVideo45, quantities.aiVideo90);
-    var total = managementTotal + postTotal + quantities.video25 * PRICING.video25 + quantities.video50 * PRICING.video50 + quantities.stories * PRICING.story + aiVideoTotal;
     var youtube = getYoutubeState();
     var hasPrimaryContent = mainContentCount > 0 || youtube.valid;
     var valid = quantitiesValid && hasPrimaryContent && (!management || selectedPlatforms.length > 0) && (!youtube.enabled || youtube.valid);
@@ -189,7 +190,42 @@
     else if (!hasPrimaryContent && management) message = 'Management requires a static post, professional video, AI video or valid YouTube long-form request.';
     else if (!hasPrimaryContent) message = 'Choose a static post, professional video, AI video or YouTube long-form editing request to create a package.';
     else if (management && selectedPlatforms.length === 0) message = 'Select at least one platform for social media management.';
-    return { quantities: quantities, quantitiesValid: quantitiesValid, platforms: selectedPlatforms, management: management, youtube: youtube, total: total, quoteOnly: youtube.enabled && total === 0, valid: valid, message: message };
+    return { quantities: quantities, quantitiesValid: quantitiesValid, platforms: selectedPlatforms, management: management, youtube: youtube, valid: valid, message: message };
+  }
+
+  function calculatePackageTotal(selection) {
+    var managementTotal = selection.management && selection.platforms.length
+      ? PRICING.managementFirstPlatform + Math.max(selection.platforms.length - 1, 0) * PRICING.managementAdditionalPlatform
+      : 0;
+    var postTotal = calculateStaticPostsPrice(selection.quantities.posts);
+    var aiVideoTotal = calculateAiVideosPrice(selection.quantities.aiVideo45, selection.quantities.aiVideo90);
+    return managementTotal + postTotal + selection.quantities.video25 * PRICING.video25 + selection.quantities.video50 * PRICING.video50 + selection.quantities.stories * PRICING.story + aiVideoTotal;
+  }
+
+  function cloneSelection(selection) {
+    return JSON.parse(JSON.stringify(selection));
+  }
+
+  function selectionKey(selection) {
+    if (!selection) return '';
+    return JSON.stringify({
+      quantities: selection.quantities,
+      platforms: selection.platforms,
+      management: selection.management,
+      youtube: {
+        enabled: selection.youtube.enabled,
+        videos: selection.youtube.videos,
+        editingType: selection.youtube.editingType,
+        addOns: selection.youtube.addOns
+      }
+    });
+  }
+
+  function createGeneratedState() {
+    var state = cloneSelection(generatedSelection);
+    state.total = generatedTotal;
+    state.quoteOnly = state.youtube.enabled && generatedTotal === 0;
+    return state;
   }
 
   function updateCard(state) {
@@ -245,31 +281,43 @@
     cardRevision += 1;
   }
 
-  function update() {
-    var state = getState();
-    preparedWhatsappUrl = state.valid ? buildWhatsappUrl(buildWhatsAppMessage(state, '')) : '';
-    totalLabel.textContent = state.quoteOnly ? 'YOUTUBE EDITING' : (state.management ? 'MONTHLY PACKAGE TOTAL' : 'PACKAGE TOTAL');
-    totalOutput.textContent = state.quoteOnly ? 'CUSTOM QUOTE REQUIRED' : (state.quantitiesValid ? formatRupees(state.total) : 'Rs. —');
-    notice.textContent = getPackageNotice(state);
-    validation.textContent = state.message;
-    validation.classList.toggle('is-valid', state.valid);
-    validation.classList.toggle('is-error', !state.valid && (state.quantities.stories > 0 || state.management || state.youtube.enabled || !state.quantitiesValid));
-    createButton.disabled = !state.valid;
-    whatsappButton.disabled = !state.valid || isWhatsappSharing || isExporting;
-    if (hasGeneratedCard) {
-      if (state.valid) {
-        updateCard(state);
-        result.hidden = false;
-        downloadButton.hidden = false;
-        downloadButton.disabled = isExporting;
-        downloadStatus.textContent = 'Package card updated to match your latest selection.';
-      } else {
-        result.hidden = true;
-        downloadButton.hidden = true;
-        downloadButton.disabled = true;
-      }
+  function updateDraftState() {
+    draftSelection = readDraftSelection();
+    isDirty = isGenerated && selectionKey(draftSelection) !== selectionKey(generatedSelection);
+
+    validation.textContent = draftSelection.message;
+    validation.classList.toggle('is-valid', draftSelection.valid);
+    validation.classList.toggle('is-error', !draftSelection.valid && (draftSelection.quantities.stories > 0 || draftSelection.management || draftSelection.youtube.enabled || !draftSelection.quantitiesValid));
+    createButton.disabled = !draftSelection.valid;
+    createButton.textContent = isGenerated ? 'Update My Package' : 'Create My Package';
+    notice.textContent = getPackageNotice(draftSelection);
+
+    if (!isGenerated) {
+      totalLabel.textContent = 'PACKAGE PRICING';
+      totalOutput.textContent = 'Your final package total will be shown after you create the package.';
+      result.hidden = true;
+      downloadButton.hidden = true;
+      downloadButton.disabled = true;
+      whatsappButton.disabled = true;
+      preparedWhatsappUrl = '';
+    } else if (isDirty) {
+      totalLabel.textContent = 'PACKAGE NEEDS UPDATE';
+      totalOutput.textContent = 'Your selections have changed. Click “Update My Package” to view the new total.';
+      result.hidden = true;
+      downloadButton.hidden = false;
+      downloadButton.disabled = true;
+      whatsappButton.disabled = true;
+      downloadStatus.textContent = 'Update your package before downloading or sharing the quotation.';
+      preparedWhatsappUrl = '';
+    } else {
+      totalLabel.textContent = 'PACKAGE CREATED';
+      totalOutput.textContent = 'Your final package total is shown in the quotation below.';
+      result.hidden = false;
+      downloadButton.hidden = false;
+      downloadButton.disabled = isExporting || isWhatsappSharing;
+      whatsappButton.disabled = isExporting || isWhatsappSharing;
     }
-    return state;
+    return draftSelection;
   }
 
   function refreshYoutubeDurationTotal() {
@@ -329,13 +377,13 @@
     while (youtubeLongForm.videos.length < nextCount) youtubeLongForm.videos.push({ durationMinutes: 1, inputValue: '1' });
     if (youtubeLongForm.videos.length > nextCount) youtubeLongForm.videos.splice(nextCount);
     renderYoutubeDurations();
-    update();
+    updateDraftState();
   }
 
   youtubeToggle.addEventListener('change', function () {
     youtubeLongForm.enabled = youtubeToggle.checked;
     youtubeDetails.hidden = !youtubeLongForm.enabled;
-    update();
+    updateDraftState();
   });
   youtubeDecreaseButton.addEventListener('click', function () { setYoutubeVideoCount(youtubeLongForm.videos.length - 1); });
   youtubeIncreaseButton.addEventListener('click', function () { setYoutubeVideoCount(youtubeLongForm.videos.length + 1); });
@@ -353,10 +401,10 @@
   managementToggle.addEventListener('change', function () {
     platformsPanel.hidden = !managementToggle.checked;
     if (!managementToggle.checked) platformInputs.forEach(function (input) { input.checked = false; });
-    update();
+    updateDraftState();
   });
-  form.addEventListener('input', update);
-  form.addEventListener('change', update);
+  form.addEventListener('input', updateDraftState);
+  form.addEventListener('change', updateDraftState);
 
   function addWholeQuantityInputGuards(input) {
     input.addEventListener('keydown', function (event) {
@@ -385,14 +433,21 @@
 
   form.addEventListener('submit', function (event) {
     event.preventDefault();
-    var state = update();
-    if (!state.valid) return;
-    hasGeneratedCard = true;
-    updateCard(state);
-    result.hidden = false;
-    downloadButton.hidden = false;
-    downloadButton.disabled = isExporting;
+    updateDraftState();
+    if (!draftSelection.valid) return;
+
+    generatedSelection = cloneSelection(draftSelection);
+    generatedTotal = calculatePackageTotal(generatedSelection);
+    isGenerated = true;
+    isDirty = false;
+
+    var generatedState = createGeneratedState();
+    updateCard(generatedState);
+    preparedWhatsappUrl = buildWhatsappUrl(buildWhatsAppMessage(generatedState, ''));
     downloadStatus.textContent = '';
+    whatsappStatus.textContent = '';
+    whatsappStatus.classList.remove('is-error');
+    updateDraftState();
     result.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   });
 
@@ -449,7 +504,7 @@
 
   function buildPackageBuilderUrl() {
     var url = new URL(window.location.href);
-    var state = getState();
+    var state = readDraftSelection();
     url.username = '';
     url.password = '';
     url.search = '';
@@ -740,15 +795,13 @@
     whatsappResetTimer = null;
     isWhatsappSharing = false;
     whatsappButtonLabel.textContent = 'Send to WhatsApp';
-    var latestState = update();
-    whatsappButton.disabled = !latestState.valid || isExporting;
+    updateDraftState();
   }
 
   downloadButton.addEventListener('click', async function () {
     if (isExporting || isWhatsappSharing) return;
-    var state = update();
-    if (!state.valid || !hasGeneratedCard) return;
-    updateCard(state);
+    updateDraftState();
+    if (!isGenerated || isDirty) return;
     isExporting = true;
     downloadButton.disabled = true;
     whatsappButton.disabled = true;
@@ -759,6 +812,8 @@
     var objectUrl;
     try {
       var blob = await renderQuotationBlob();
+      updateDraftState();
+      if (isDirty) throw new Error('Your selections changed while the image was being prepared. Update your package and try again.');
       objectUrl = URL.createObjectURL(blob);
       downloadLink = document.createElement('a');
       downloadLink.href = objectUrl;
@@ -778,25 +833,20 @@
       if (objectUrl) window.setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 30000);
       isExporting = false;
       downloadButton.textContent = downloadButtonLabel;
-      var latestState = getState();
-      downloadButton.disabled = !hasGeneratedCard || !latestState.valid;
-      whatsappButton.disabled = !latestState.valid;
+      updateDraftState();
     }
   });
 
   whatsappButton.addEventListener('click', function () {
     if (isWhatsappSharing || isExporting) return;
-    var state = update();
-    if (!state.valid) {
-      whatsappStatus.textContent = state.message;
+    updateDraftState();
+    if (!isGenerated || isDirty || !preparedWhatsappUrl) {
+      whatsappStatus.textContent = isGenerated
+        ? 'Your selections have changed. Update your package before sharing.'
+        : 'Create your package before sharing it.';
       whatsappStatus.classList.add('is-error');
       return;
     }
-
-    hasGeneratedCard = true;
-    updateCard(state);
-    result.hidden = false;
-    downloadButton.hidden = false;
     isWhatsappSharing = true;
     whatsappButton.disabled = true;
     whatsappStatus.classList.remove('is-error');
@@ -810,14 +860,7 @@
 
   window.addEventListener('pageshow', resetWhatsAppButton);
 
-  var restoredSharedPackage = restoreSharedPackageState();
+  restoreSharedPackageState();
   renderYoutubeDurations();
-  var initialState = update();
-  if (restoredSharedPackage && initialState.valid) {
-    hasGeneratedCard = true;
-    updateCard(initialState);
-    result.hidden = false;
-    downloadButton.hidden = false;
-    downloadButton.disabled = false;
-  }
+  updateDraftState();
 }());

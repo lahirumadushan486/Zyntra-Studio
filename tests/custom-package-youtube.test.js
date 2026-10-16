@@ -28,7 +28,7 @@ assert.match(script, /var youtubeLongForm = \{[\s\S]*enabled: false[\s\S]*videos
 assert.match(script, /videos\.length >= 1 && videos\.length <= 20/);
 assert.match(script, /video\.durationMinutes >= 1 && video\.durationMinutes <= 180/);
 assert.match(script, /hasPrimaryContent = mainContentCount > 0 \|\| youtube\.valid/);
-assert.match(script, /youtube\.enabled && total === 0/);
+assert.match(script, /state\.quoteOnly = state\.youtube\.enabled && generatedTotal === 0/);
 assert.match(script, /CUSTOM QUOTE REQUIRED/g);
 assert.match(script, /does not include YouTube long-form video editing/);
 

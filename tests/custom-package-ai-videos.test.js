@@ -38,14 +38,15 @@ assert.match(html, /aria-label="Increase AI videos up to 45 seconds"/);
 assert.match(html, /aria-label="Decrease AI videos up to 1\.5 minutes"/);
 assert.match(html, /aria-label="Increase AI videos up to 1\.5 minutes"/);
 
-assert.match(script, /var aiVideoTotal = calculateAiVideosPrice\(quantities\.aiVideo45, quantities\.aiVideo90\);/);
+assert.match(script, /var aiVideoTotal = calculateAiVideosPrice\(selection\.quantities\.aiVideo45, selection\.quantities\.aiVideo90\);/);
 assert.match(script, /mainContentCount = quantities\.posts \+ quantities\.video25 \+ quantities\.video50 \+ quantities\.aiVideo45 \+ quantities\.aiVideo90/);
 assert.match(script, /hasPrimaryContent = mainContentCount > 0 \|\| youtube\.valid/);
 assert.match(script, /root\.querySelectorAll\('\[data-quantity-control\]'\)/, 'AI controls must reuse the existing increment/decrement behavior');
 assert.match(script, /input\.dispatchEvent\(new Event\('input', \{ bubbles: true \}\)\)/, 'Quantity buttons must recalculate immediately');
 assert.match(script, /if \(state\.quantities\.aiVideo45 > 0\) selectedItems\.push\(\['AI Videos up to 45 seconds:'/);
 assert.match(script, /if \(state\.quantities\.aiVideo90 > 0\) selectedItems\.push\(\['AI Videos up to 1\.5 minutes:'/);
-assert.match(script, /if \(hasGeneratedCard\)[\s\S]*updateCard\(state\)/, 'Generated card must refresh after quantity changes');
+assert.match(script, /isDirty = isGenerated && selectionKey\(draftSelection\) !== selectionKey\(generatedSelection\)/, 'Quantity changes must mark a generated quotation as outdated');
+assert.doesNotMatch(script.slice(script.indexOf('  function updateDraftState'), script.indexOf('  function refreshYoutubeDurationTotal')), /updateCard\(/, 'Draft changes must not update the generated card');
 
 assert.match(script, /url\.searchParams\.set\('aiVideo45', String\(state\.quantities\.aiVideo45\)\)/);
 assert.match(script, /url\.searchParams\.set\('aiVideo90', String\(state\.quantities\.aiVideo90\)\)/);
@@ -70,6 +71,6 @@ assert.match(script, /bulkRate:\s*800/);
 assert.match(script, /video25:\s*2000/);
 assert.match(script, /video50:\s*3000/);
 assert.match(script, /story:\s*1400/);
-assert.match(script, /quoteOnly: youtube\.enabled && total === 0/);
+assert.match(script, /state\.quoteOnly = state\.youtube\.enabled && generatedTotal === 0/);
 
 console.log('Custom package AI video tests: PASS');

@@ -43,8 +43,8 @@ assert.equal(context.calculateStaticPostsPrice(11) + context.PRICING.video25, 10
 assert.equal(context.calculateStaticPostsPrice(11) + context.PRICING.managementFirstPlatform, 15800, 'Posts plus one-platform management total');
 
 assert.doesNotMatch(script, /postFirstTen|postAfterTen|Math\.min\(quantities\.posts,\s*10\)/, 'Progressive post pricing must be removed');
-assert.match(script, /var postTotal = calculateStaticPostsPrice\(quantities\.posts\);/);
-assert.match(script, /var total = managementTotal \+ postTotal \+ quantities\.video25 \* PRICING\.video25 \+ quantities\.video50 \* PRICING\.video50 \+ quantities\.stories \* PRICING\.story \+ aiVideoTotal;/);
+assert.match(script, /var postTotal = calculateStaticPostsPrice\(selection\.quantities\.posts\);/);
+assert.match(script, /return managementTotal \+ postTotal \+ selection\.quantities\.video25 \* PRICING\.video25 \+ selection\.quantities\.video50 \* PRICING\.video50 \+ selection\.quantities\.stories \* PRICING\.story \+ aiVideoTotal;/);
 assert.match(script, /\[quantityInputs\.posts, quantityInputs\.aiVideo45, quantityInputs\.aiVideo90\]\.forEach\(addWholeQuantityInputGuards\);/);
 assert.match(html, /A special per-post rate applies when selecting 11 or more posts\./);
 assert.doesNotMatch(html, /Progressive pricing applies from post 10 onward\./);

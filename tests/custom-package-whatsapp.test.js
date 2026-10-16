@@ -56,12 +56,13 @@ const whatsappUrl = context.buildWhatsappUrl(multilingualMessage);
 assert.equal(whatsappUrl.indexOf('https://wa.me/947046004033?text='), 0);
 assert.equal(decodeURIComponent(whatsappUrl.split('?text=')[1]), multilingualMessage, 'English, Sinhala, spaces, symbols and line breaks must round-trip through one encoding pass');
 
-assert.match(script, /preparedWhatsappUrl = state\.valid \? buildWhatsappUrl\(buildWhatsAppMessage\(state, ''\)\) : '';/, 'Every state update must prepare the completed URL');
-assert.match(script, /whatsappButton\.addEventListener\('click', function \(\) \{[\s\S]*var state = update\(\);[\s\S]*var whatsappUrl = preparedWhatsappUrl;[\s\S]*window\.location\.assign\(whatsappUrl\);/);
+assert.match(script, /preparedWhatsappUrl = buildWhatsappUrl\(buildWhatsAppMessage\(generatedState, ''\)\);/, 'Only package generation may prepare the completed URL');
+assert.match(script, /whatsappButton\.addEventListener\('click', function \(\) \{[\s\S]*if \(!isGenerated \|\| isDirty \|\| !preparedWhatsappUrl\)[\s\S]*var whatsappUrl = preparedWhatsappUrl;[\s\S]*window\.location\.assign\(whatsappUrl\);/);
 const clickStart = script.indexOf("  whatsappButton.addEventListener('click'");
 const clickEnd = script.indexOf("  window.addEventListener('pageshow'", clickStart);
 const clickHandler = script.slice(clickStart, clickEnd);
 assert.doesNotMatch(clickHandler, /\basync\b|\bawait\b|renderQuotationBlob|uploadQuotationImage|fetch\(/, 'Click navigation must not wait for image rendering or upload');
+assert.doesNotMatch(clickHandler, /updateCard\(|calculatePackageTotal\(/, 'WhatsApp must use the latest explicitly generated snapshot');
 assert.doesNotMatch(script, /window\.open\(|about:blank|prepareWhatsappWindow|uploadQuotationImage|setFormBusy/);
 assert.doesNotMatch(script + html, /Send Quotation Details Instead|custom-package-whatsapp-fallback|Your latest quotation is ready in WhatsApp/);
 assert.match(clickHandler, /if \(isWhatsappSharing \|\| isExporting\) return;/, 'Double clicks must be ignored');
