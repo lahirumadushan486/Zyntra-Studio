@@ -65,12 +65,12 @@ assert.doesNotMatch(clickHandler, /\basync\b|\bawait\b|renderQuotationBlob|uploa
 assert.doesNotMatch(clickHandler, /updateCard\(|calculatePackageTotal\(/, 'WhatsApp must use the latest explicitly generated snapshot');
 assert.doesNotMatch(script, /window\.open\(|about:blank|prepareWhatsappWindow|uploadQuotationImage|setFormBusy/);
 assert.doesNotMatch(script + html, /Send Quotation Details Instead|custom-package-whatsapp-fallback|Your latest quotation is ready in WhatsApp/);
-assert.match(clickHandler, /if \(isWhatsappSharing \|\| isExporting\) return;/, 'Double clicks must be ignored');
+assert.match(clickHandler, /if \(isWhatsappSharing\) return;/, 'Double clicks must be ignored');
 assert.match(script, /window\.setTimeout\(resetWhatsAppButton, 1500\)/, 'The opening state must recover if navigation is interrupted');
 assert.match(script, /window\.addEventListener\('pageshow', resetWhatsAppButton\)/, 'The button must reset when the customer returns with Back');
 
-assert.match(script, /async function renderQuotationBlob\(\)/, 'Image download must retain its independent renderer');
-assert.equal((script.match(/var blob = await renderQuotationBlob\(\)/g) || []).length, 1, 'Only Download Quotation may render an image');
+assert.doesNotMatch(script, /renderQuotationBlob|html2canvas/, 'WhatsApp must remain independent of the removed PNG renderer');
+assert.match(script, /window\.location\.assign\('quotation\.html'\)/, 'Quotation preview uses same-tab navigation');
 
 assert.match(styles, /custom-package-builder__quotation-actions\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)/);
 assert.match(styles, /@media\(max-width:700px\)\{[^}]*custom-package-builder__quotation-actions\{grid-template-columns:minmax\(0,1fr\)/);

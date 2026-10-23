@@ -52,7 +52,7 @@ assert.doesNotMatch(html, /Progressive pricing applies from post 10 onward\./);
 // Public calculator and generated/exported card expose only the final package total.
 assert.doesNotMatch(html, /(?:post|posts)[ -]?subtotal/i);
 assert.doesNotMatch(script, /(?:post|posts)[ -]?subtotal/i);
-assert.match(script, /var exportCard = card\.cloneNode\(true\);/, 'PNG must clone the generated card');
+assert.match(script, /if \(state\.quantities\.posts > 0\) add\('posts'/, 'Quotation snapshot must include selected static posts');
 assert.match(script, /quantityInputs\.posts\.value = String\(readSharedInteger\(params, 'posts', 0, PRICING\.maximumQuantity, 0\)\);/, 'Shared post quantity must restore safely');
 
 console.log('Static Posts pricing tests passed.');

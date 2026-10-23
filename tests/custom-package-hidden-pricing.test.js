@@ -9,7 +9,7 @@ const styles = fs.readFileSync('css/custom-package-builder.css', 'utf8');
 
 const builderHtml = html.slice(html.indexOf('id="custom-package-builder"'), html.indexOf('<!-- Detailed services -->'));
 const draftUpdate = script.slice(script.indexOf('  function updateDraftState'), script.indexOf('  function refreshYoutubeDurationTotal'));
-const submitHandler = script.slice(script.indexOf("  form.addEventListener('submit'"), script.indexOf('  function waitForCardAssets'));
+const submitHandler = script.slice(script.indexOf("  form.addEventListener('submit'"), script.indexOf('  function buildPackageBuilderUrl'));
 const downloadHandler = script.slice(script.indexOf("  downloadButton.addEventListener('click'"), script.indexOf("  whatsappButton.addEventListener('click'"));
 
 // The initial DOM must contain instructions, not a placeholder or live amount.
@@ -25,18 +25,20 @@ assert.match(script, /var draftSelection = null;[\s\S]*var generatedSelection = 
 assert.match(draftUpdate, /draftSelection = readDraftSelection\(\)/);
 assert.match(draftUpdate, /isDirty = isGenerated && selectionKey\(draftSelection\) !== selectionKey\(generatedSelection\)/);
 assert.doesNotMatch(draftUpdate, /calculatePackageTotal|calculateStaticPostsPrice|calculateAiVideosPrice|formatRupees|updateCard|buildWhatsAppMessage/);
-assert.match(draftUpdate, /Your selections have changed\. Click “Update My Package” to view the new total\./);
+assert.match(draftUpdate, /Your selections have changed\. Click Create My Package to update your quotation\./);
 assert.match(draftUpdate, /result\.hidden = true;[\s\S]*downloadButton\.disabled = true;[\s\S]*whatsappButton\.disabled = true;/);
 
 // A valid submit snapshots the draft and is the sole caller of the aggregate calculator.
 assert.match(submitHandler, /generatedSelection = cloneSelection\(draftSelection\)/);
 assert.match(submitHandler, /generatedTotal = calculatePackageTotal\(generatedSelection\)/);
 assert.match(submitHandler, /updateCard\(generatedState\)/);
-assert.equal((script.match(/calculatePackageTotal\(/g) || []).length, 2, 'One declaration and one submit-time call are expected');
+assert.match(submitHandler, /currentQuotationSnapshot = createQuotationSnapshot\(generatedState\)/);
+assert.match(submitHandler, /writeSessionJson\(QUOTATION_STORAGE_KEY, currentQuotationSnapshot\)/);
 
 // Download and WhatsApp can only use a clean generated snapshot.
 assert.match(downloadHandler, /if \(!isGenerated \|\| isDirty\) return/);
-assert.match(downloadHandler, /if \(isDirty\) throw new Error/);
+assert.match(downloadHandler, /writeSessionJson\(QUOTATION_STORAGE_KEY, currentQuotationSnapshot\)/);
+assert.match(downloadHandler, /window\.location\.assign\('quotation\.html'\)/);
 assert.doesNotMatch(downloadHandler, /updateCard\(|calculatePackageTotal\(/);
 assert.match(script, /if \(!isGenerated \|\| isDirty \|\| !preparedWhatsappUrl\)/);
 

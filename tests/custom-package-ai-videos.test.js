@@ -54,10 +54,9 @@ assert.match(script, /quantityInputs\.aiVideo45\.value = String\(readSharedInteg
 assert.match(script, /quantityInputs\.aiVideo90\.value = String\(readSharedInteger\(params, 'aiVideo90', 0, PRICING\.maximumQuantity, 0\)\)/);
 
 assert.doesNotMatch(html.slice(html.indexOf('id="custom-package-builder"')), /Rs\.\s*(?:3,500|5,500)/, 'AI service rows must not expose separate prices');
-assert.match(script, /var exportCard = card\.cloneNode\(true\);/, 'PNG must use the visible generated card');
-assert.match(script, /renderedRevision !== cardRevision/, 'PNG must reject stale card renders');
-assert.match(script, /await waitForCardAssets\(card\)/, 'PNG must wait for visible card assets');
-assert.match(script, /await waitForCardAssets\(exportCard\)/, 'PNG must wait for cloned card assets');
+assert.match(script, /buildQuotationServices\(state\)/, 'Quotation rows must derive from generated state');
+assert.match(script, /if \(state\.quantities\.aiVideo45 > 0\) add\('aiVideo45'/);
+assert.match(script, /if \(state\.quantities\.aiVideo90 > 0\) add\('aiVideo90'/);
 
 assert.match(styles, /custom-package-builder__ai-video-option\{[^}]*grid-template-columns:minmax\(0,1fr\) auto/);
 assert.match(styles, /@media\(max-width:390px\)\{[^}]*custom-package-builder__ai-video-option\{grid-template-columns:minmax\(0,1fr\)/);

@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="robots" content="noindex, nofollow">
+  <title>Zyntra Studio Quotation</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/css/zyntra-quotation.css">
+</head>
+<body>
+  <nav class="quotation-toolbar" aria-label="Quotation actions">
+    <a class="quotation-button quotation-button--secondary" href="index.html#build-your-package">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg>
+      <span>Back to Package Builder</span>
+    </a>
+    <button class="quotation-button quotation-button--primary" id="quotation-print" type="button" disabled>
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 9V3h10v6M7 17H5a2 2 0 0 1-2-2v-4a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v4a2 2 0 0 1-2 2h-2"></path><path d="M7 14h10v7H7zM17 12h.01"></path></svg>
+      <span>Print / Save as PDF</span>
+    </button>
+  </nav>
+
+  <main class="quotation-stage">
+    <section class="quotation-message" id="quotation-message" role="status" aria-live="polite" hidden>
+      <h1>Quotation unavailable</h1>
+      <p id="quotation-message-text">Create a valid package before opening the quotation preview.</p>
+      <a href="index.html#build-your-package">Go to Package Builder</a>
+    </section>
+
+    <article class="quotation-document" id="quotation-document" aria-labelledby="quotation-title" hidden>
+      <header class="quotation-header">
+        <div class="quotation-brand">
+          <img id="quotation-logo" src="assets/images/zyntra-logo.png.png" alt="Zyntra Studio logo" width="84" height="84">
+          <div>
+            <p class="quotation-brand__name">ZYNTRA STUDIO</p>
+            <p class="quotation-brand__tagline">Your Partner in Digital Success.</p>
+          </div>
+        </div>
+        <div class="quotation-heading">
+          <p>CUSTOM PACKAGE QUOTATION</p>
+          <h1 id="quotation-title">QUOTATION</h1>
+        </div>
+      </header>
+
+      <section class="quotation-meta" aria-label="Quotation details">
+        <dl>
+          <div><dt>Quotation reference</dt><dd id="quotation-reference"></dd></div>
+          <div><dt>Generated date</dt><dd id="quotation-issued"></dd></div>
+          <div><dt>Valid until</dt><dd id="quotation-expiry"></dd></div>
+        </dl>
+        <p class="quotation-expired" id="quotation-expired" hidden><strong>EXPIRED</strong> This quotation has expired. Please return to the Package Builder and regenerate it to obtain current pricing.</p>
+      </section>
+
+      <section class="quotation-section quotation-services" aria-labelledby="services-title">
+        <h2 id="services-title">YOUR SELECTED SERVICES</h2>
+        <table>
+          <colgroup><col class="quotation-service-column"><col></colgroup>
+          <thead><tr><th scope="col">Service</th><th scope="col">Selected Details</th></tr></thead>
+          <tbody id="quotation-services"></tbody>
+        </table>
+      </section>
+
+      <section class="quotation-section quotation-included" id="quotation-included-section" aria-labelledby="included-title" hidden>
+        <h2 id="included-title">INCLUDED SERVICES</h2>
+        <ul id="quotation-included"></ul>
+      </section>
+
+      <section class="quotation-total" aria-label="Quotation total">
+        <p id="quotation-total-label">PACKAGE TOTAL</p>
+        <strong id="quotation-total"></strong>
+      </section>
+
+      <section class="quotation-notes" aria-label="Important quotation notes">
+        <p id="quotation-quote-only-notice" hidden>Price to be discussed separately. This service is not included in the displayed total.</p>
+        <p id="quotation-advertising-notice"></p>
+        <p>Final scope and pricing are subject to confirmation by Zyntra Studio.</p>
+      </section>
+
+      <footer class="quotation-footer">
+        <p class="quotation-thanks">Thank you for choosing Zyntra Studio.</p>
+        <address>
+          <span>Call / WhatsApp: <a href="tel:+94706004033">070 600 4033</a></span>
+          <span>Website: <a href="https://www.zyntrastudio.lk/">www.zyntrastudio.lk</a></span>
+        </address>
+        <div class="quotation-validity">
+          <p>Quoted prices are valid for 28 days from the quotation date.</p>
+          <p>These prices are valid for 28 days only from the date of the price list.</p>
+          <p id="quotation-validity-date"></p>
+        </div>
+      </footer>
+    </article>
+  </main>
+  <script src="assets/js/zyntra-quotation.js"></script>
+</body>
+</html>

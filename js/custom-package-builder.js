@@ -19,8 +19,9 @@
     aiVideo90: 5500,
     maximumQuantity: 999
   });
-  var EXPORT_SCALE = 2;
-  var EXPORT_WIDTH = 1080;
+  var QUOTATION_STORAGE_KEY = 'zyntra.customPackageQuotation.v1';
+  var BUILDER_STORAGE_KEY = 'zyntra.customPackageBuilder.v1';
+  var QUOTATION_VERSION = 1;
   var WHATSAPP_CONFIG = Object.freeze({
     companyNumber: '947046004033'
   });
@@ -81,15 +82,12 @@
   var generatedTotal = null;
   var isGenerated = false;
   var isDirty = false;
-  var isExporting = false;
   var isSharing = false;
   var isWhatsappSharing = false;
   var preparedWhatsappUrl = '';
   var whatsappResetTimer;
-  var cardRevision = 0;
   var shareStatusTimer;
-  var fontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : Promise.resolve();
-  var downloadButtonLabel = downloadButton.textContent;
+  var currentQuotationSnapshot = null;
 
   function formatLocalWhatsappNumber(internationalNumber) {
     var localNumber = internationalNumber.indexOf('94') === 0 ? '0' + internationalNumber.slice(2) : internationalNumber;
@@ -100,6 +98,56 @@
 
   function formatRupees(amount) {
     return 'Rs. ' + amount.toLocaleString('en-US');
+  }
+
+  function readSessionJson(key) {
+    try {
+      var raw = window.sessionStorage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeSessionJson(key, value) {
+    try {
+      window.sessionStorage.setItem(key, JSON.stringify(value));
+      return true;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function getColomboDateParts(date) {
+    var parts = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Asia/Colombo', year: 'numeric', month: '2-digit', day: '2-digit'
+    }).formatToParts(date || new Date());
+    var values = {};
+    parts.forEach(function (part) { if (part.type !== 'literal') values[part.type] = part.value; });
+    return { year: Number(values.year), month: Number(values.month), day: Number(values.day) };
+  }
+
+  function datePartsToIso(parts) {
+    return String(parts.year).padStart(4, '0') + '-' + String(parts.month).padStart(2, '0') + '-' + String(parts.day).padStart(2, '0');
+  }
+
+  function addCalendarDays(isoDate, days) {
+    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
+    if (!match) return '';
+    var date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days));
+    return date.getUTCFullYear() + '-' + String(date.getUTCMonth() + 1).padStart(2, '0') + '-' + String(date.getUTCDate()).padStart(2, '0');
+  }
+
+  function createQuotationReference(issueDate) {
+    var randomPart = '';
+    if (window.crypto && typeof window.crypto.getRandomValues === 'function') {
+      var random = new Uint32Array(1);
+      window.crypto.getRandomValues(random);
+      randomPart = random[0].toString(36).slice(-5).padStart(5, '0').toUpperCase();
+    } else {
+      randomPart = (Date.now().toString(36) + Math.random().toString(36).slice(2)).slice(-5).toUpperCase();
+    }
+    return 'ZS-Q-' + issueDate.replace(/-/g, '') + '-' + randomPart;
   }
 
   function calculateStaticPostsPrice(quantity) {
@@ -163,8 +211,8 @@
         ? 'Submit or share these requirements with Zyntra Studio to receive the final quotation.'
         : 'The package total does not include YouTube long-form video editing. Its final price will be confirmed separately.');
     }
-    if (state.management) messages.push('Ad boosting support is included. Advertising spend/ad budget is not included and will be discussed separately because platform rates can change.');
-    else if (!state.youtube.enabled) messages.push('Advertising spend is not included in this content package.');
+    if (state.management && state.platforms.length) messages.push('Ad boosting support is included with your selected social media management package. Advertising spend/ad budget is not included and will be discussed separately.');
+    else messages.push('Advertising spend and ad boosting management are not included in this content package.');
     return messages.join(' ');
   }
 
@@ -228,6 +276,55 @@
     return state;
   }
 
+  function buildQuotationServices(state) {
+    var services = [];
+    function add(id, service, details) {
+      services.push({ id: id, service: service, details: details });
+    }
+    if (state.quantities.posts > 0) add('posts', 'Static Posts', state.quantities.posts + (state.quantities.posts === 1 ? ' post' : ' posts'));
+    if (state.quantities.video25 > 0) add('video25', 'Professional Videos', state.quantities.video25 + (state.quantities.video25 === 1 ? ' video' : ' videos') + ' · Up to 25 seconds each');
+    if (state.quantities.video50 > 0) add('video50', 'Professional Videos', state.quantities.video50 + (state.quantities.video50 === 1 ? ' video' : ' videos') + ' · Up to 50 seconds each');
+    if (state.quantities.stories > 0) add('stories', 'Simple Story Videos', state.quantities.stories + (state.quantities.stories === 1 ? ' story video' : ' story videos') + ' · Up to 20 seconds each');
+    if (state.quantities.aiVideo45 > 0) add('aiVideo45', 'AI Videos', state.quantities.aiVideo45 + (state.quantities.aiVideo45 === 1 ? ' video' : ' videos') + ' · Up to 45 seconds each');
+    if (state.quantities.aiVideo90 > 0) add('aiVideo90', 'AI Videos', state.quantities.aiVideo90 + (state.quantities.aiVideo90 === 1 ? ' video' : ' videos') + ' · Up to 1.5 minutes each');
+    if (state.management && state.platforms.length) add('management', 'Social Media Management', 'Platforms: ' + state.platforms.join(', '));
+    if (state.youtube.enabled) {
+      var youtubeDetails = state.youtube.videoCount + (state.youtube.videoCount === 1 ? ' video' : ' videos') +
+        ' · Durations: ' + state.youtube.videos.map(function (video) { return video.durationMinutes + ' min'; }).join(', ') +
+        ' · ' + state.youtube.editingTypeLabel;
+      if (state.youtube.addOns.length) youtubeDetails += ' · Add-ons: ' + state.youtube.addOns.map(function (key) { return YOUTUBE_ADDONS[key]; }).join(', ');
+      add('youtube', 'YouTube Long-Form Editing', youtubeDetails);
+    }
+    return services;
+  }
+
+  function createQuotationSnapshot(state) {
+    var issueDate = datePartsToIso(getColomboDateParts(new Date()));
+    return {
+      version: QUOTATION_VERSION,
+      reference: createQuotationReference(issueDate),
+      issueDate: issueDate,
+      expiryDate: addCalendarDays(issueDate, 28),
+      selection: cloneSelection(generatedSelection),
+      services: buildQuotationServices(state),
+      total: state.total,
+      quoteOnly: state.quoteOnly,
+      monthly: Boolean(state.management && state.platforms.length),
+      hasQuoteOnlyService: Boolean(state.youtube.enabled),
+      createdAt: new Date().toISOString()
+    };
+  }
+
+  function saveBuilderState() {
+    if (!draftSelection) return;
+    writeSessionJson(BUILDER_STORAGE_KEY, {
+      version: QUOTATION_VERSION,
+      draft: cloneSelection(draftSelection),
+      generated: generatedSelection ? cloneSelection(generatedSelection) : null,
+      total: generatedTotal
+    });
+  }
+
   function updateCard(state) {
     cardTotalLabel.textContent = state.quoteOnly ? 'YOUTUBE EDITING' : (state.management ? 'MONTHLY PACKAGE TOTAL' : 'PACKAGE TOTAL');
     cardTotal.textContent = state.quoteOnly ? 'CUSTOM QUOTE REQUIRED' : formatRupees(state.total);
@@ -278,7 +375,6 @@
       cardItems.appendChild(youtubeItem);
     }
     cardManagement.hidden = !state.management;
-    cardRevision += 1;
   }
 
   function updateDraftState() {
@@ -289,7 +385,7 @@
     validation.classList.toggle('is-valid', draftSelection.valid);
     validation.classList.toggle('is-error', !draftSelection.valid && (draftSelection.quantities.stories > 0 || draftSelection.management || draftSelection.youtube.enabled || !draftSelection.quantitiesValid));
     createButton.disabled = !draftSelection.valid;
-    createButton.textContent = isGenerated ? 'Update My Package' : 'Create My Package';
+    createButton.textContent = 'Create My Package';
     notice.textContent = getPackageNotice(draftSelection);
 
     if (!isGenerated) {
@@ -302,21 +398,22 @@
       preparedWhatsappUrl = '';
     } else if (isDirty) {
       totalLabel.textContent = 'PACKAGE NEEDS UPDATE';
-      totalOutput.textContent = 'Your selections have changed. Click “Update My Package” to view the new total.';
+      totalOutput.textContent = 'Your selections have changed. Click Create My Package to update your quotation.';
       result.hidden = true;
       downloadButton.hidden = false;
       downloadButton.disabled = true;
       whatsappButton.disabled = true;
-      downloadStatus.textContent = 'Update your package before downloading or sharing the quotation.';
+      downloadStatus.textContent = 'Your selections have changed. Click Create My Package to update your quotation.';
       preparedWhatsappUrl = '';
     } else {
       totalLabel.textContent = 'PACKAGE CREATED';
       totalOutput.textContent = 'Your final package total is shown in the quotation below.';
       result.hidden = false;
       downloadButton.hidden = false;
-      downloadButton.disabled = isExporting || isWhatsappSharing;
-      whatsappButton.disabled = isExporting || isWhatsappSharing;
+      downloadButton.disabled = isWhatsappSharing;
+      whatsappButton.disabled = isWhatsappSharing;
     }
+    saveBuilderState();
     return draftSelection;
   }
 
@@ -442,6 +539,8 @@
     isDirty = false;
 
     var generatedState = createGeneratedState();
+    currentQuotationSnapshot = createQuotationSnapshot(generatedState);
+    writeSessionJson(QUOTATION_STORAGE_KEY, currentQuotationSnapshot);
     updateCard(generatedState);
     preparedWhatsappUrl = buildWhatsappUrl(buildWhatsAppMessage(generatedState, ''));
     downloadStatus.textContent = '';
@@ -450,57 +549,6 @@
     updateDraftState();
     result.scrollIntoView({ behavior: window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'nearest' });
   });
-
-  function waitForCardAssets(scope) {
-    var images = Array.prototype.slice.call(scope.querySelectorAll('img'));
-    var imagesReady = Promise.all(images.map(function (image) {
-      if (!image.src) return Promise.resolve();
-      if (image.complete) {
-        if (image.naturalWidth === 0) return Promise.resolve();
-        return typeof image.decode === 'function' ? image.decode().catch(function () {}) : Promise.resolve();
-      }
-      return new Promise(function (resolve) {
-        image.addEventListener('load', resolve, { once: true });
-        image.addEventListener('error', resolve, { once: true });
-      });
-    }));
-    var currentFontsReady = document.fonts && document.fonts.ready ? document.fonts.ready : fontsReady;
-    return Promise.all([currentFontsReady, imagesReady]);
-  }
-
-  function removeLegacyExportHosts() {
-    root.querySelectorAll('.custom-package-export-host').forEach(function (element) { element.remove(); });
-  }
-
-  function nextAnimationFrame() {
-    return new Promise(function (resolve) { window.requestAnimationFrame(resolve); });
-  }
-
-  function createExportCard() {
-    var exportCard = card.cloneNode(true);
-    exportCard.removeAttribute('id');
-    exportCard.removeAttribute('aria-labelledby');
-    exportCard.classList.add('custom-package-card--export');
-    exportCard.setAttribute('aria-hidden', 'true');
-    exportCard.style.width = EXPORT_WIDTH + 'px';
-    exportCard.querySelectorAll('[id]').forEach(function (element) { element.removeAttribute('id'); });
-    root.appendChild(exportCard);
-    return exportCard;
-  }
-
-  function canvasToBlob(canvas) {
-    return new Promise(function (resolve, reject) {
-      canvas.toBlob(function (blob) {
-        if (blob) resolve(blob);
-        else reject(new Error('The image could not be created. Please try again.'));
-      }, 'image/png');
-    });
-  }
-
-  function removeFromAccessibilityFlow(element) {
-    element.setAttribute('aria-hidden', 'true');
-    element.tabIndex = -1;
-  }
 
   function buildPackageBuilderUrl() {
     var url = new URL(window.location.href);
@@ -579,6 +627,58 @@
     youtubeDetails.hidden = !youtubeLongForm.enabled;
     youtubeEditingInputs.forEach(function (input) { input.checked = input.value === youtubeLongForm.editingType; });
     youtubeAddonInputs.forEach(function (input) { input.checked = Boolean(youtubeLongForm.addOns[input.value]); });
+    return true;
+  }
+
+  function isSafeStoredSelection(selection) {
+    if (!selection || !selection.quantities || !selection.youtube || !Array.isArray(selection.platforms)) return false;
+    var quantitiesAreSafe = Object.keys(quantityInputs).every(function (key) {
+      return Number.isSafeInteger(selection.quantities[key]) && selection.quantities[key] >= 0 && selection.quantities[key] <= PRICING.maximumQuantity;
+    });
+    var allowedPlatforms = platformInputs.map(function (input) { return input.value; });
+    var platformsAreSafe = selection.platforms.length <= allowedPlatforms.length && selection.platforms.every(function (platform, index) {
+      return allowedPlatforms.includes(platform) && selection.platforms.indexOf(platform) === index;
+    });
+    var youtube = selection.youtube;
+    var youtubeSafe = typeof youtube.enabled === 'boolean' && Array.isArray(youtube.videos) && youtube.videos.length >= 1 && youtube.videos.length <= 20 &&
+      youtube.videos.every(function (video) { return video && Number.isInteger(video.durationMinutes) && video.durationMinutes >= 1 && video.durationMinutes <= 180; }) &&
+      (!youtube.enabled || Object.prototype.hasOwnProperty.call(YOUTUBE_EDITING_TYPES, youtube.editingType)) &&
+      Array.isArray(youtube.addOns) && youtube.addOns.every(function (key) { return Object.prototype.hasOwnProperty.call(YOUTUBE_ADDONS, key); });
+    return quantitiesAreSafe && platformsAreSafe && youtubeSafe && typeof selection.management === 'boolean';
+  }
+
+  function applySelectionToBuilder(selection) {
+    Object.keys(quantityInputs).forEach(function (key) { quantityInputs[key].value = String(selection.quantities[key]); });
+    managementToggle.checked = selection.management;
+    platformsPanel.hidden = !selection.management;
+    platformInputs.forEach(function (input) { input.checked = selection.management && selection.platforms.includes(input.value); });
+    youtubeLongForm.enabled = selection.youtube.enabled;
+    youtubeLongForm.videos = selection.youtube.videos.map(function (video) {
+      return { durationMinutes: video.durationMinutes, inputValue: String(video.durationMinutes) };
+    });
+    youtubeLongForm.editingType = selection.youtube.editingType;
+    Object.keys(YOUTUBE_ADDONS).forEach(function (key) { youtubeLongForm.addOns[key] = selection.youtube.addOns.includes(key); });
+    youtubeToggle.checked = youtubeLongForm.enabled;
+    youtubeDetails.hidden = !youtubeLongForm.enabled;
+    youtubeEditingInputs.forEach(function (input) { input.checked = input.value === youtubeLongForm.editingType; });
+    youtubeAddonInputs.forEach(function (input) { input.checked = Boolean(youtubeLongForm.addOns[input.value]); });
+  }
+
+  function restoreStoredBuilderState() {
+    var stored = readSessionJson(BUILDER_STORAGE_KEY);
+    if (!stored || stored.version !== QUOTATION_VERSION || !isSafeStoredSelection(stored.draft)) return false;
+    applySelectionToBuilder(stored.draft);
+    var snapshot = readSessionJson(QUOTATION_STORAGE_KEY);
+    if (isSafeStoredSelection(stored.generated) && snapshot && snapshot.version === QUOTATION_VERSION &&
+        selectionKey(snapshot.selection) === selectionKey(stored.generated)) {
+      generatedSelection = cloneSelection(stored.generated);
+      generatedTotal = calculatePackageTotal(generatedSelection);
+      isGenerated = true;
+      currentQuotationSnapshot = snapshot;
+      var generatedState = createGeneratedState();
+      updateCard(generatedState);
+      preparedWhatsappUrl = buildWhatsappUrl(buildWhatsAppMessage(generatedState, ''));
+    }
     return true;
   }
 
@@ -680,84 +780,6 @@
     });
   }
 
-  async function renderQuotationBlob() {
-    removeLegacyExportHosts();
-    var canvas;
-    var exportCard;
-    var existingCloneContainers = new Set(document.querySelectorAll('.html2canvas-container'));
-    var cloneObserver = typeof MutationObserver === 'function' ? new MutationObserver(function (records) {
-      records.forEach(function (record) {
-        Array.prototype.forEach.call(record.addedNodes, function (node) {
-          if (node.nodeType === 1 && node.classList.contains('html2canvas-container')) removeFromAccessibilityFlow(node);
-        });
-      });
-    }) : null;
-    if (cloneObserver) cloneObserver.observe(document.body, { childList: true });
-
-    try {
-      if (typeof window.html2canvas !== 'function') throw new Error('The image export library did not load. Please refresh and try again.');
-
-      var renderedRevision;
-      do {
-        renderedRevision = cardRevision;
-        await waitForCardAssets(card);
-        exportCard = createExportCard();
-        await waitForCardAssets(exportCard);
-        await nextAnimationFrame();
-        await nextAnimationFrame();
-
-        var exportWidth = Math.ceil(exportCard.scrollWidth);
-        var exportHeight = Math.ceil(exportCard.scrollHeight);
-        if (!exportWidth || !exportHeight) throw new Error('The package image could not be measured. Please try again.');
-
-        if (renderedRevision !== cardRevision) {
-          exportCard.remove();
-          exportCard = null;
-          continue;
-        }
-
-        canvas = await window.html2canvas(exportCard, {
-          backgroundColor: null,
-          scale: EXPORT_SCALE,
-          useCORS: true,
-          allowTaint: false,
-          logging: false,
-          imageTimeout: 15000,
-          removeContainer: true,
-          onclone: function (clonedDocument) {
-            clonedDocument.body.setAttribute('aria-hidden', 'true');
-          },
-          width: exportWidth,
-          height: exportHeight,
-          windowWidth: exportWidth,
-          windowHeight: exportHeight,
-          scrollX: 0,
-          scrollY: 0
-        });
-        exportCard.remove();
-        exportCard = null;
-        if (renderedRevision !== cardRevision) {
-          canvas.width = 0;
-          canvas.height = 0;
-          canvas = null;
-        }
-      } while (renderedRevision !== cardRevision);
-
-      return await canvasToBlob(canvas);
-    } finally {
-      if (cloneObserver) cloneObserver.disconnect();
-      if (exportCard) exportCard.remove();
-      if (canvas) {
-        canvas.width = 0;
-        canvas.height = 0;
-      }
-      document.querySelectorAll('.html2canvas-container').forEach(function (element) {
-        if (!existingCloneContainers.has(element)) element.remove();
-      });
-      removeLegacyExportHosts();
-    }
-  }
-
   function buildWhatsAppMessage(state, quotationUrl) {
     var lines = [
       'Hello Zyntra Studio,',
@@ -798,47 +820,19 @@
     updateDraftState();
   }
 
-  downloadButton.addEventListener('click', async function () {
-    if (isExporting || isWhatsappSharing) return;
+  downloadButton.addEventListener('click', function () {
+    if (isWhatsappSharing) return;
     updateDraftState();
     if (!isGenerated || isDirty) return;
-    isExporting = true;
-    downloadButton.disabled = true;
-    whatsappButton.disabled = true;
-    downloadButton.textContent = 'Preparing image…';
-    downloadStatus.textContent = 'Preparing your high-quality package image…';
-
-    var downloadLink;
-    var objectUrl;
-    try {
-      var blob = await renderQuotationBlob();
-      updateDraftState();
-      if (isDirty) throw new Error('Your selections changed while the image was being prepared. Update your package and try again.');
-      objectUrl = URL.createObjectURL(blob);
-      downloadLink = document.createElement('a');
-      downloadLink.href = objectUrl;
-      downloadLink.download = 'Zyntra-Studio-Custom-Package.png';
-      downloadLink.hidden = true;
-      downloadLink.tabIndex = -1;
-      downloadLink.setAttribute('aria-hidden', 'true');
-      document.body.appendChild(downloadLink);
-      downloadLink.click();
-      downloadStatus.textContent = 'Package image downloaded.';
-    } catch (error) {
-      downloadStatus.textContent = error && error.message
-        ? error.message
-        : 'The package image could not be downloaded. Please try again.';
-    } finally {
-      if (downloadLink) downloadLink.remove();
-      if (objectUrl) window.setTimeout(function () { URL.revokeObjectURL(objectUrl); }, 30000);
-      isExporting = false;
-      downloadButton.textContent = downloadButtonLabel;
-      updateDraftState();
+    if (!currentQuotationSnapshot || !writeSessionJson(QUOTATION_STORAGE_KEY, currentQuotationSnapshot)) {
+      downloadStatus.textContent = 'The quotation preview is unavailable because this browser could not save the generated quotation. Please allow session storage and try again.';
+      return;
     }
+    window.location.assign('quotation.html');
   });
 
   whatsappButton.addEventListener('click', function () {
-    if (isWhatsappSharing || isExporting) return;
+    if (isWhatsappSharing) return;
     updateDraftState();
     if (!isGenerated || isDirty || !preparedWhatsappUrl) {
       whatsappStatus.textContent = isGenerated
@@ -860,7 +854,8 @@
 
   window.addEventListener('pageshow', resetWhatsAppButton);
 
-  restoreSharedPackageState();
+  var restoredSharedPackage = restoreSharedPackageState();
+  if (!restoredSharedPackage) restoreStoredBuilderState();
   renderYoutubeDurations();
   updateDraftState();
 }());

@@ -49,7 +49,7 @@ assert.match(script, /if \(params\.get\('zpkg'\) !== '1'\) return false/, 'Old l
 
 assert.match(styles, /custom-package-builder__durations\{[^}]*grid-template-columns:repeat\(2/);
 assert.match(styles, /@media\(max-width:700px\)\{[^}]*custom-package-builder__youtube/);
-assert.match(styles, /custom-package-card--export \.custom-package-card__youtube div\{grid-template-columns:repeat\(2/);
-assert.match(script, /Math\.ceil\(exportCard\.scrollHeight\)/, 'YouTube details must use the content-sized export path');
+assert.match(script, /add\('youtube', 'YouTube Long-Form Editing', youtubeDetails\)/);
+assert.match(script, /hasQuoteOnlyService: Boolean\(state\.youtube\.enabled\)/);
 
 console.log('Custom package YouTube long-form contract tests: PASS');
