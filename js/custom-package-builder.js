@@ -9,7 +9,7 @@
     managementAdditionalPlatform: 1000,
     staticPosts: Object.freeze({
       standardRate: 1000,
-      bulkRate: 800,
+      bulkRate: 900,
       bulkRateStartsAt: 11
     }),
     video25: 2000,
