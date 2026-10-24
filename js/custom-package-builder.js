@@ -10,7 +10,8 @@
     staticPosts: Object.freeze({
       standardRate: 1000,
       bulkRate: 900,
-      bulkRateStartsAt: 11
+      bulkRateStartsAt: 11,
+      fullOrderBulkRateStartsAt: 20
     }),
     video25: 2000,
     video50: 3000,
@@ -152,16 +153,14 @@
 
   function calculateStaticPostsPrice(quantity) {
     var postCount = Math.max(0, Math.floor(Number(quantity) || 0));
+    var standardPostLimit = PRICING.staticPosts.bulkRateStartsAt - 1;
 
-    if (postCount === 0) {
-      return 0;
+    if (postCount <= standardPostLimit) return postCount * PRICING.staticPosts.standardRate;
+    if (postCount < PRICING.staticPosts.fullOrderBulkRateStartsAt) {
+      return standardPostLimit * PRICING.staticPosts.standardRate +
+        (postCount - standardPostLimit) * PRICING.staticPosts.bulkRate;
     }
-
-    var ratePerPost = postCount < PRICING.staticPosts.bulkRateStartsAt
-      ? PRICING.staticPosts.standardRate
-      : PRICING.staticPosts.bulkRate;
-
-    return postCount * ratePerPost;
+    return postCount * PRICING.staticPosts.bulkRate;
   }
 
   function calculateAiVideosPrice(aiVideo45Quantity, aiVideo90Quantity) {

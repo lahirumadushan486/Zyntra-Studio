@@ -34,19 +34,19 @@ vm.runInContext(script.slice(start, end), context);
 
 const state = {
   platforms: ['Facebook', 'Instagram'],
-  quantities: { posts: 11, video25: 1, video50: 0, stories: 0, aiVideo45: 1, aiVideo90: 0 },
+  quantities: { posts: 20, video25: 1, video50: 0, stories: 0, aiVideo45: 1, aiVideo90: 0 },
   management: true,
   youtube: { enabled: false, videoCount: 1, videos: [{ durationMinutes: 1 }], editingTypeLabel: '', addOns: [] },
   quoteOnly: false,
-  total: 21300
+  total: 31500
 };
 const message = context.buildWhatsAppMessage(state, 'https://example.test/quotation');
 assert.match(message, /Platforms: Facebook, Instagram/);
-assert.match(message, /Static Posts: 11/);
+assert.match(message, /Static Posts: 20/);
 assert.match(message, /Professional Videos up to 25 seconds: 1/);
 assert.match(message, /AI Videos up to 45 seconds: 1/);
 assert.match(message, /Social Media Management: Included/);
-assert.match(message, /FINAL PACKAGE TOTAL\nRs\. 21,300/);
+assert.match(message, /FINAL PACKAGE TOTAL\nRs\. 31,500/);
 assert.match(message, /Quotation Image: https:\/\/example\.test\/quotation/);
 assert.doesNotMatch(message, /Professional Videos up to 50 seconds|Simple Story Videos|AI Videos up to 1\.5 minutes/);
 assert.equal((message.match(/Rs\./g) || []).length, 1, 'Message must contain only the final monetary total');

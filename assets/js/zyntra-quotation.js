@@ -62,10 +62,16 @@
     return quantitiesValid && platformsValid && youtubeValid && typeof selection.management === 'boolean';
   }
 
+  function calculateStaticPostsPrice(postCount) {
+    if (postCount <= 10) return postCount * 1000;
+    if (postCount < 20) return 10 * 1000 + (postCount - 10) * 900;
+    return postCount * 900;
+  }
+
   function calculateExpectedTotal(selection) {
-    var postRate = selection.quantities.posts >= 11 ? 800 : 1000;
+    var postTotal = calculateStaticPostsPrice(selection.quantities.posts);
     var managementTotal = selection.management && selection.platforms.length ? 7000 + Math.max(0, selection.platforms.length - 1) * 1000 : 0;
-    return managementTotal + selection.quantities.posts * postRate + selection.quantities.video25 * 2000 +
+    return managementTotal + postTotal + selection.quantities.video25 * 2000 +
       selection.quantities.video50 * 3000 + selection.quantities.stories * 1400 +
       selection.quantities.aiVideo45 * 3500 + selection.quantities.aiVideo90 * 5500;
   }

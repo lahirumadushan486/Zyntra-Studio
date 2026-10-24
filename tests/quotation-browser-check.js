@@ -76,7 +76,7 @@ async function run() {
 
   await evaluate(`(() => {
     const input = document.querySelector('#custom-post-count');
-    input.value = '2'; input.dispatchEvent(new Event('input', { bubbles: true }));
+    input.value = '20'; input.dispatchEvent(new Event('input', { bubbles: true }));
   })()`);
   assert.match(await evaluate(`document.querySelector('#custom-package-total').textContent`), /shown after you create/);
   await evaluate(`document.querySelector('#custom-package-form').requestSubmit()`);
@@ -85,11 +85,11 @@ async function run() {
     return { total: snapshot.total, reference: snapshot.reference, issue: snapshot.issueDate, expiry: snapshot.expiryDate,
       card: document.querySelector('#custom-card-total').textContent, actionDisabled: document.querySelector('#custom-package-download').disabled };
   })()`);
-  assert.equal(firstGenerated.total, 2000);
-  assert.equal(firstGenerated.card, 'Rs. 2,000');
+  assert.equal(firstGenerated.total, 18000);
+  assert.equal(firstGenerated.card, 'Rs. 18,000');
   assert.equal(firstGenerated.actionDisabled, false);
 
-  await evaluate(`(() => { const input = document.querySelector('#custom-post-count'); input.value='3'; input.dispatchEvent(new Event('input',{bubbles:true})); })()`);
+  await evaluate(`(() => { const input = document.querySelector('#custom-post-count'); input.value='21'; input.dispatchEvent(new Event('input',{bubbles:true})); })()`);
   const dirty = await evaluate(`(() => ({
     notice: document.querySelector('#custom-package-total').textContent,
     resultHidden: document.querySelector('#custom-package-result').hidden,
@@ -99,9 +99,9 @@ async function run() {
   assert.match(dirty.notice, /selections have changed/);
   assert.equal(dirty.resultHidden, true);
   assert.equal(dirty.disabled, true);
-  assert.equal(dirty.storedTotal, 2000);
+  assert.equal(dirty.storedTotal, 18000);
 
-  await evaluate(`(() => { const input=document.querySelector('#custom-post-count'); input.value='2'; input.dispatchEvent(new Event('input',{bubbles:true})); document.querySelector('#custom-package-form').requestSubmit(); })()`);
+  await evaluate(`(() => { const input=document.querySelector('#custom-post-count'); input.value='20'; input.dispatchEvent(new Event('input',{bubbles:true})); document.querySelector('#custom-package-form').requestSubmit(); })()`);
   const regeneratedReference = await evaluate(`JSON.parse(sessionStorage.getItem('zyntra.customPackageQuotation.v1')).reference`);
   assert.notEqual(regeneratedReference, firstGenerated.reference);
 
@@ -119,7 +119,7 @@ async function run() {
     amountCount: (document.body.innerText.match(/Rs\\. \\d/g) || []).length
   }))()`);
   assert.equal(postsOnly.rows, 1);
-  assert.equal(postsOnly.total, 'Rs. 2,000');
+  assert.equal(postsOnly.total, 'Rs. 18,000');
   assert.equal(postsOnly.includedHidden, true);
   assert.match(postsOnly.adNotice, /ad boosting management are not included/);
   assert.equal(postsOnly.reference, regeneratedReference);
@@ -132,7 +132,7 @@ async function run() {
 
   await navigate('http://127.0.0.1:4173/index.html#build-your-package');
   const restored = await evaluate(`(() => ({ value: document.querySelector('#custom-post-count').value, card: document.querySelector('#custom-card-total').textContent, hidden: document.querySelector('#custom-package-result').hidden }))()`);
-  assert.deepEqual(restored, { value: '2', card: 'Rs. 2,000', hidden: false });
+  assert.deepEqual(restored, { value: '20', card: 'Rs. 18,000', hidden: false });
 
   await evaluate(`(() => {
     const posts=document.querySelector('#custom-post-count'); posts.value='1'; posts.dispatchEvent(new Event('input',{bubbles:true}));

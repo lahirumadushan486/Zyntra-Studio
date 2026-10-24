@@ -19,7 +19,7 @@ const allowedAddOns = new Set(['thumbnail', 'subtitles', 'introOutro', 'motionGr
 const pricing = Object.freeze({
   managementFirstPlatform: 7000,
   managementAdditionalPlatform: 1000,
-  staticPosts: Object.freeze({ standardRate: 1000, bulkRate: 800, bulkRateStartsAt: 11 }),
+  staticPosts: Object.freeze({ standardRate: 1000, bulkRate: 900, bulkRateStartsAt: 11, fullOrderBulkRateStartsAt: 20 }),
   video25: 2000,
   video50: 3000,
   story: 1400,
@@ -65,8 +65,13 @@ function readQuantity(value: unknown) {
 }
 
 function calculateStaticPostsPrice(quantity: number) {
-  if (quantity === 0) return 0;
-  return quantity * (quantity < pricing.staticPosts.bulkRateStartsAt ? pricing.staticPosts.standardRate : pricing.staticPosts.bulkRate);
+  const standardPostLimit = pricing.staticPosts.bulkRateStartsAt - 1;
+  if (quantity <= standardPostLimit) return quantity * pricing.staticPosts.standardRate;
+  if (quantity < pricing.staticPosts.fullOrderBulkRateStartsAt) {
+    return standardPostLimit * pricing.staticPosts.standardRate +
+      (quantity - standardPostLimit) * pricing.staticPosts.bulkRate;
+  }
+  return quantity * pricing.staticPosts.bulkRate;
 }
 
 function validateAndPricePackage(value: unknown): ValidPackage | null {

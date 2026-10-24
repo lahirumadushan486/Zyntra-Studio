@@ -66,7 +66,7 @@ assert.doesNotMatch(styles, /custom-package-builder__ai-(?:videos|video-option)\
 assert.match(script, /managementFirstPlatform:\s*7000/);
 assert.match(script, /managementAdditionalPlatform:\s*1000/);
 assert.match(script, /standardRate:\s*1000/);
-assert.match(script, /bulkRate:\s*800/);
+assert.match(script, /bulkRate:\s*900/);
 assert.match(script, /video25:\s*2000/);
 assert.match(script, /video50:\s*3000/);
 assert.match(script, /story:\s*1400/);
