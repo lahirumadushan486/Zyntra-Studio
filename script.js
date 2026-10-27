@@ -1527,39 +1527,6 @@ document.addEventListener('DOMContentLoaded', function () {
     });
   }
 
-  function createSparkBurst(x, y) {
-    if (isReduced || document.hidden) return;
-    var core = document.createElement('span');
-    core.className = 'spark-burst'; core.style.left = x + 'px'; core.style.top = y + 'px';
-    document.body.appendChild(core);
-    var colors = ['#54d8ff', '#4d7cff', '#806dff', '#ffffff'];
-    var count = isTouch ? 6 : 8;
-    for (var i = 0; i < count; i += 1) {
-      var particle = document.createElement('span');
-      var angle = (Math.PI * 2 * i / count) + Math.random() * 0.35;
-      var distance = 20 + Math.random() * 34;
-      particle.className = 'spark-particle';
-      particle.style.left = x + 'px'; particle.style.top = y + 'px';
-      particle.style.setProperty('--dx', Math.cos(angle) * distance + 'px');
-      particle.style.setProperty('--dy', (Math.sin(angle) * distance + 45 + Math.random() * 38) + 'px');
-      particle.style.setProperty('--spin', (Math.random() * 260 - 130) + 'deg');
-      particle.style.setProperty('--size', (2 + Math.random() * 3) + 'px');
-      particle.style.setProperty('--duration', (620 + Math.random() * 240) + 'ms');
-      particle.style.setProperty('--spark', colors[i % colors.length]);
-      document.body.appendChild(particle);
-      window.setTimeout(function (node) { node.remove(); }, 920, particle);
-    }
-    window.setTimeout(function () { core.remove(); }, 740);
-  }
-
-  document.addEventListener('pointerup', function (event) {
-    if (event.button !== undefined && event.button !== 0) return;
-    if (event.target.closest('input, textarea, select, option, label, [contenteditable="true"]')) return;
-    var selection = window.getSelection();
-    if (selection && selection.toString()) return;
-    createSparkBurst(event.clientX, event.clientY);
-  }, { passive: true });
-
   initStarField();
 
   function initStarField() {
