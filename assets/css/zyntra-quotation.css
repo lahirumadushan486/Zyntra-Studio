@@ -43,9 +43,13 @@ button,a{font:inherit}
 .quotation-included ul{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:5px 24px;margin:0;padding:13px 15px 13px 32px;border:1px solid var(--line);background:#fbfcfe}
 .quotation-included li{padding-left:2px;font-size:.8rem;break-inside:avoid}
 .quotation-included li::marker{color:var(--blue)}
-.quotation-total{display:flex;align-items:center;justify-content:space-between;gap:20px;margin-top:24px;padding:15px 17px;border:1px solid #cbd9ea;border-left:5px solid var(--blue);background:var(--pale);break-inside:avoid}
+.quotation-total{display:grid;gap:9px;margin-top:24px;padding:15px 17px;border:1px solid #cbd9ea;border-left:5px solid var(--blue);background:var(--pale);break-inside:avoid}
+.quotation-total__row{display:flex;align-items:center;justify-content:space-between;gap:20px}
+.quotation-total__row--final{padding-top:9px;border-top:1px solid #cbd9ea}
+.quotation-total__row--final:first-child{padding-top:0;border-top:0}
 .quotation-total p{margin:0;color:var(--navy);font-size:.75rem;font-weight:800;letter-spacing:.1em}
-.quotation-total strong{color:var(--navy);font:800 1.5rem/1.2 "Manrope",sans-serif;text-align:right}
+.quotation-total strong{color:var(--navy);font:800 1rem/1.2 "Manrope",sans-serif;text-align:right}
+.quotation-total__row--final strong{font-size:1.5rem}
 .quotation-notes{margin-top:17px;padding-top:14px;border-top:1px solid var(--line);break-inside:avoid}
 .quotation-notes p{margin:5px 0;color:var(--muted);font-size:.74rem;line-height:1.5}
 .quotation-notes p:first-child{color:var(--ink);font-weight:600}
@@ -57,6 +61,6 @@ button,a{font:inherit}
 .quotation-validity p{margin:2px 0;color:var(--muted);font-size:.69rem;line-height:1.45}
 .quotation-validity p:first-child,.quotation-validity p:last-child{color:var(--ink);font-weight:700}
 [hidden]{display:none!important}
-@media(max-width:700px){.quotation-toolbar{width:calc(100% - 20px);align-items:stretch;flex-direction:column-reverse;margin:10px auto}.quotation-button{width:100%}.quotation-stage{padding:0 10px 20px}.quotation-document{padding:22px 16px}.quotation-header{align-items:flex-start;flex-direction:column;gap:15px}.quotation-heading{text-align:left}.quotation-heading h1{font-size:1.65rem}.quotation-brand img{width:54px;height:54px}.quotation-meta dl{grid-template-columns:1fr;gap:9px}.quotation-section{margin-top:20px}.quotation-service-column{width:36%}.quotation-services th,.quotation-services td{padding:9px 8px}.quotation-services td{font-size:.76rem}.quotation-included ul{grid-template-columns:1fr}.quotation-total{align-items:flex-start;flex-direction:column;gap:6px}.quotation-total strong{text-align:left}.quotation-footer address{flex-direction:column;gap:2px}}
+@media(max-width:700px){.quotation-toolbar{width:calc(100% - 20px);align-items:stretch;flex-direction:column-reverse;margin:10px auto}.quotation-button{width:100%}.quotation-stage{padding:0 10px 20px}.quotation-document{padding:22px 16px}.quotation-header{align-items:flex-start;flex-direction:column;gap:15px}.quotation-heading{text-align:left}.quotation-heading h1{font-size:1.65rem}.quotation-brand img{width:54px;height:54px}.quotation-meta dl{grid-template-columns:1fr;gap:9px}.quotation-section{margin-top:20px}.quotation-service-column{width:36%}.quotation-services th,.quotation-services td{padding:9px 8px}.quotation-services td{font-size:.76rem}.quotation-included ul{grid-template-columns:1fr}.quotation-total__row{align-items:flex-start;flex-direction:column;gap:4px}.quotation-total strong{text-align:left}.quotation-footer address{flex-direction:column;gap:2px}}
 @page{size:A4 portrait;margin:14mm 13mm}
 @media print{html,body{background:#fff}.quotation-toolbar,.quotation-message{display:none!important}.quotation-stage{padding:0}.quotation-document{width:auto;margin:0;padding:0;box-shadow:none}.quotation-header{padding-bottom:16px}.quotation-section{margin-top:20px}.quotation-services thead{display:table-header-group}.quotation-services tfoot{display:table-footer-group}.quotation-services tr{break-inside:avoid;page-break-inside:avoid}.quotation-services td,.quotation-services th{position:static}.quotation-section h2{break-after:avoid;page-break-after:avoid}.quotation-included,.quotation-total,.quotation-notes,.quotation-footer{break-inside:avoid;page-break-inside:avoid}.quotation-services table{break-inside:auto;page-break-inside:auto}.quotation-document{font-size:10.5pt}}

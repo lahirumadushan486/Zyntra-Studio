@@ -737,6 +737,17 @@
             </div>
           </fieldset>
 
+          <fieldset class="custom-package-builder__group custom-package-builder__coupon">
+            <legend>Coupon <span>(Optional)</span></legend>
+            <div class="custom-package-builder__coupon-controls">
+              <label class="sr-only" for="custom-coupon-code">Coupon code</label>
+              <input id="custom-coupon-code" type="text" inputmode="text" autocomplete="off" autocapitalize="characters" spellcheck="false" placeholder="Enter coupon code" aria-describedby="custom-coupon-status">
+              <button class="btn btn-outline" id="custom-coupon-apply" type="button">Apply</button>
+              <button class="btn btn-outline" id="custom-coupon-remove" type="button" hidden>Remove</button>
+            </div>
+            <p class="custom-package-builder__coupon-status" id="custom-coupon-status" role="status" aria-live="polite" aria-atomic="true"></p>
+          </fieldset>
+
           <div class="custom-package-builder__summary">
             <div><p class="custom-package-builder__total-label" id="custom-package-total-label">PACKAGE PRICING</p><output class="custom-package-builder__total" id="custom-package-total" aria-live="polite">Your final package total will be shown after you create the package.</output></div>
             <p class="custom-package-builder__notice" id="custom-package-notice">Advertising spend is not included in this content package.</p>
@@ -761,6 +772,10 @@
             <div class="custom-package-card__management" id="custom-card-management" hidden><strong>Social Media Management</strong><span>Content scheduling · Page maintenance · Ad boosting support</span></div>
           </div>
           <footer class="custom-package-card__footer">
+            <div class="custom-package-card__price-breakdown" id="custom-card-price-breakdown" hidden>
+              <div><span>PACKAGE TOTAL</span><strong id="custom-card-original-total"></strong></div>
+              <div><span id="custom-card-coupon-label">COUPON DISCOUNT</span><strong id="custom-card-coupon-discount"></strong></div>
+            </div>
             <div class="custom-package-card__price"><span id="custom-card-total-label">PACKAGE TOTAL</span><strong id="custom-card-total">Final total</strong></div>
             <p id="custom-card-notice">Advertising spend is not included in this content package.</p>
             <div class="custom-package-card__contact"><span id="custom-card-whatsapp-contact"></span><span>www.zyntrastudio.lk</span></div>
@@ -1301,6 +1316,6 @@
 
 <script src="script.js"></script>
 <script src="js/package-chat.js"></script>
-<script src="js/custom-package-builder.js"></script>
+<script type="module" src="js/custom-package-builder.js"></script>
 </body>
 </html>

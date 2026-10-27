@@ -1,4 +1,5 @@
 import { createClient } from 'npm:@supabase/supabase-js@2.112.3';
+import { COUPON_CONFIG } from '../../../js/coupon-config.js';
 
 const BUCKET = 'quotation-images';
 const MAX_IMAGE_BYTES = 8 * 1024 * 1024;
@@ -74,6 +75,17 @@ function calculateStaticPostsPrice(quantity: number) {
   return quantity * pricing.staticPosts.bulkRate;
 }
 
+function readCoupon(value: unknown) {
+  if (value === null) return null;
+  if (!COUPON_CONFIG.enabled || !isRecord(value) || typeof value.code !== 'string' || typeof value.amount !== 'number' || !Number.isSafeInteger(value.amount)) return undefined;
+  const escapedPrefix = COUPON_CONFIG.prefix.toUpperCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const match = new RegExp(`^${escapedPrefix}([1-9]\\d*)$`).exec(value.code);
+  if (!match) return undefined;
+  const amount = Number(match[1]);
+  if (value.code !== value.code.toUpperCase() || amount !== value.amount || amount < COUPON_CONFIG.minimumDiscount || amount > COUPON_CONFIG.maximumDiscount) return undefined;
+  return { code: value.code, amount };
+}
+
 function validateAndPricePackage(value: unknown): ValidPackage | null {
   if (!isRecord(value) || !isRecord(value.quantities) || !isRecord(value.youtube)) return null;
   const quantities = value.quantities;
@@ -107,8 +119,11 @@ function validateAndPricePackage(value: unknown): ValidPackage | null {
   const mainContentCount = posts! + video25! + video50! + aiVideo45! + aiVideo90!;
   if (mainContentCount === 0 && !youtubeValid) return null;
   const managementTotal = management ? pricing.managementFirstPlatform + Math.max(platforms.length - 1, 0) * pricing.managementAdditionalPlatform : 0;
-  const total = managementTotal + calculateStaticPostsPrice(posts!) + video25! * pricing.video25 + video50! * pricing.video50 + stories! * pricing.story + aiVideo45! * pricing.aiVideo45 + aiVideo90! * pricing.aiVideo90;
-  return { total, quoteOnly: youtubeEnabled && total === 0 };
+  const originalTotal = managementTotal + calculateStaticPostsPrice(posts!) + video25! * pricing.video25 + video50! * pricing.video50 + stories! * pricing.story + aiVideo45! * pricing.aiVideo45 + aiVideo90! * pricing.aiVideo90;
+  const coupon = readCoupon(value.coupon);
+  if (coupon === undefined || (coupon && coupon.amount >= originalTotal)) return null;
+  const total = originalTotal - (coupon ? coupon.amount : 0);
+  return { total, quoteOnly: youtubeEnabled && originalTotal === 0 };
 }
 
 function isRenderedQuotationPng(bytes: Uint8Array) {

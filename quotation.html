@@ -68,8 +68,9 @@
       </section>
 
       <section class="quotation-total" aria-label="Quotation total">
-        <p id="quotation-total-label">PACKAGE TOTAL</p>
-        <strong id="quotation-total"></strong>
+        <div class="quotation-total__row" id="quotation-original-row" hidden><p>PACKAGE TOTAL</p><strong id="quotation-original-total"></strong></div>
+        <div class="quotation-total__row" id="quotation-coupon-row" hidden><p id="quotation-coupon-label">COUPON DISCOUNT</p><strong id="quotation-coupon-discount"></strong></div>
+        <div class="quotation-total__row quotation-total__row--final"><p id="quotation-total-label">PACKAGE TOTAL</p><strong id="quotation-total"></strong></div>
       </section>
 
       <section class="quotation-notes" aria-label="Important quotation notes">
@@ -92,6 +93,6 @@
       </footer>
     </article>
   </main>
-  <script src="assets/js/zyntra-quotation.js"></script>
+  <script type="module" src="assets/js/zyntra-quotation.js"></script>
 </body>
 </html>

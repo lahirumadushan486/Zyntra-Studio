@@ -1,3 +1,5 @@
+import { COUPON_CONFIG } from './coupon-config.js';
+
 (function () {
   'use strict';
 
@@ -9,9 +11,8 @@
     managementAdditionalPlatform: 1000,
     staticPosts: Object.freeze({
       standardRate: 1000,
-      bulkRate: 900,
-      bulkRateStartsAt: 11,
-      fullOrderBulkRateStartsAt: 20
+      bulkRate: 800,
+      bulkRateStartsAt: 11
     }),
     video25: 2000,
     video50: 3000,
@@ -59,6 +60,10 @@
   var totalLabel = root.querySelector('#custom-package-total-label');
   var totalOutput = root.querySelector('#custom-package-total');
   var notice = root.querySelector('#custom-package-notice');
+  var couponInput = root.querySelector('#custom-coupon-code');
+  var couponApplyButton = root.querySelector('#custom-coupon-apply');
+  var couponRemoveButton = root.querySelector('#custom-coupon-remove');
+  var couponStatus = root.querySelector('#custom-coupon-status');
   var validation = root.querySelector('#custom-package-validation');
   var createButton = root.querySelector('#custom-package-create');
   var result = root.querySelector('#custom-package-result');
@@ -68,6 +73,10 @@
   var cardManagement = root.querySelector('#custom-card-management');
   var cardTotalLabel = root.querySelector('#custom-card-total-label');
   var cardTotal = root.querySelector('#custom-card-total');
+  var cardPriceBreakdown = root.querySelector('#custom-card-price-breakdown');
+  var cardOriginalTotal = root.querySelector('#custom-card-original-total');
+  var cardCouponLabel = root.querySelector('#custom-card-coupon-label');
+  var cardCouponDiscount = root.querySelector('#custom-card-coupon-discount');
   var cardNotice = root.querySelector('#custom-card-notice');
   var cardWhatsappContact = root.querySelector('#custom-card-whatsapp-contact');
   var downloadButton = root.querySelector('#custom-package-download');
@@ -89,6 +98,7 @@
   var whatsappResetTimer;
   var shareStatusTimer;
   var currentQuotationSnapshot = null;
+  var appliedCoupon = null;
 
   function formatLocalWhatsappNumber(internationalNumber) {
     var localNumber = internationalNumber.indexOf('94') === 0 ? '0' + internationalNumber.slice(2) : internationalNumber;
@@ -99,6 +109,30 @@
 
   function formatRupees(amount) {
     return 'Rs. ' + amount.toLocaleString('en-US');
+  }
+
+  function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function validateCouponCode(rawCode) {
+    if (!COUPON_CONFIG.enabled) return { valid: false, message: 'Coupon codes are currently unavailable.' };
+    var normalizedCode = String(rawCode || '').trim().toUpperCase();
+    var completePattern = new RegExp('^' + escapeRegExp(COUPON_CONFIG.prefix.toUpperCase()) + '([1-9]\\d*)$');
+    var match = completePattern.exec(normalizedCode);
+    if (!match) return { valid: false, message: 'Enter a valid coupon code.' };
+    var amount = Number(match[1]);
+    if (!Number.isSafeInteger(amount) || amount < COUPON_CONFIG.minimumDiscount || amount > COUPON_CONFIG.maximumDiscount) {
+      return { valid: false, message: 'This coupon code is not valid.' };
+    }
+    return { valid: true, code: normalizedCode, amount: amount };
+  }
+
+  function setCouponFeedback(message, type) {
+    couponStatus.textContent = message;
+    couponStatus.classList.toggle('is-valid', type === 'valid');
+    couponStatus.classList.toggle('is-error', type === 'error');
+    couponInput.setAttribute('aria-invalid', String(type === 'error'));
   }
 
   function readSessionJson(key) {
@@ -153,14 +187,16 @@
 
   function calculateStaticPostsPrice(quantity) {
     var postCount = Math.max(0, Math.floor(Number(quantity) || 0));
-    var standardPostLimit = PRICING.staticPosts.bulkRateStartsAt - 1;
 
-    if (postCount <= standardPostLimit) return postCount * PRICING.staticPosts.standardRate;
-    if (postCount < PRICING.staticPosts.fullOrderBulkRateStartsAt) {
-      return standardPostLimit * PRICING.staticPosts.standardRate +
-        (postCount - standardPostLimit) * PRICING.staticPosts.bulkRate;
+    if (postCount === 0) {
+      return 0;
     }
-    return postCount * PRICING.staticPosts.bulkRate;
+
+    var ratePerPost = postCount < PRICING.staticPosts.bulkRateStartsAt
+      ? PRICING.staticPosts.standardRate
+      : PRICING.staticPosts.bulkRate;
+
+    return postCount * ratePerPost;
   }
 
   function calculateAiVideosPrice(aiVideo45Quantity, aiVideo90Quantity) {
@@ -228,7 +264,10 @@
     var mainContentCount = quantities.posts + quantities.video25 + quantities.video50 + quantities.aiVideo45 + quantities.aiVideo90;
     var youtube = getYoutubeState();
     var hasPrimaryContent = mainContentCount > 0 || youtube.valid;
-    var valid = quantitiesValid && hasPrimaryContent && (!management || selectedPlatforms.length > 0) && (!youtube.enabled || youtube.valid);
+    var selection = { quantities: quantities, quantitiesValid: quantitiesValid, platforms: selectedPlatforms, management: management, youtube: youtube, coupon: appliedCoupon ? { code: appliedCoupon.code, amount: appliedCoupon.amount } : null };
+    var originalTotal = calculatePackageTotal(selection);
+    var couponTotalValid = !selection.coupon || originalTotal > selection.coupon.amount;
+    var valid = quantitiesValid && hasPrimaryContent && (!management || selectedPlatforms.length > 0) && (!youtube.enabled || youtube.valid) && couponTotalValid;
     var message = 'Your package is ready to create.';
     if (!quantitiesValid) message = 'Enter whole-number quantities from 0 to ' + PRICING.maximumQuantity + '.';
     else if (youtube.enabled && !youtube.durationsValid) message = 'Enter a whole-number duration from 1 to 180 minutes for every YouTube video.';
@@ -237,7 +276,10 @@
     else if (!hasPrimaryContent && management) message = 'Management requires a static post, professional video, AI video or valid YouTube long-form request.';
     else if (!hasPrimaryContent) message = 'Choose a static post, professional video, AI video or YouTube long-form editing request to create a package.';
     else if (management && selectedPlatforms.length === 0) message = 'Select at least one platform for social media management.';
-    return { quantities: quantities, quantitiesValid: quantitiesValid, platforms: selectedPlatforms, management: management, youtube: youtube, valid: valid, message: message };
+    else if (!couponTotalValid) message = 'This coupon requires a package total higher than its discount value.';
+    selection.valid = valid;
+    selection.message = message;
+    return selection;
   }
 
   function calculatePackageTotal(selection) {
@@ -264,14 +306,16 @@
         videos: selection.youtube.videos,
         editingType: selection.youtube.editingType,
         addOns: selection.youtube.addOns
-      }
+      },
+      coupon: selection.coupon
     });
   }
 
   function createGeneratedState() {
     var state = cloneSelection(generatedSelection);
+    state.originalTotal = calculatePackageTotal(generatedSelection);
     state.total = generatedTotal;
-    state.quoteOnly = state.youtube.enabled && generatedTotal === 0;
+    state.quoteOnly = state.youtube.enabled && state.originalTotal === 0;
     return state;
   }
 
@@ -306,6 +350,8 @@
       expiryDate: addCalendarDays(issueDate, 28),
       selection: cloneSelection(generatedSelection),
       services: buildQuotationServices(state),
+      originalTotal: state.originalTotal,
+      coupon: state.coupon ? { code: state.coupon.code, amount: state.coupon.amount } : null,
       total: state.total,
       quoteOnly: state.quoteOnly,
       monthly: Boolean(state.management && state.platforms.length),
@@ -324,9 +370,24 @@
     });
   }
 
+  function createCouponOutputTotals(state) {
+    return {
+      packageTotal: state.originalTotal,
+      couponDiscount: state.coupon ? state.coupon.amount : 0,
+      finalPackageTotal: state.total
+    };
+  }
+
   function updateCard(state) {
-    cardTotalLabel.textContent = state.quoteOnly ? 'YOUTUBE EDITING' : (state.management ? 'MONTHLY PACKAGE TOTAL' : 'PACKAGE TOTAL');
-    cardTotal.textContent = state.quoteOnly ? 'CUSTOM QUOTE REQUIRED' : formatRupees(state.total);
+    var outputTotals = createCouponOutputTotals(state);
+    cardTotalLabel.textContent = state.quoteOnly ? 'YOUTUBE EDITING' : (state.coupon ? 'FINAL PACKAGE TOTAL' : (state.management ? 'MONTHLY PACKAGE TOTAL' : 'PACKAGE TOTAL'));
+    cardTotal.textContent = state.quoteOnly ? 'CUSTOM QUOTE REQUIRED' : formatRupees(outputTotals.finalPackageTotal);
+    cardPriceBreakdown.hidden = !state.coupon;
+    if (state.coupon) {
+      cardOriginalTotal.textContent = formatRupees(outputTotals.packageTotal);
+      cardCouponLabel.textContent = 'COUPON DISCOUNT';
+      cardCouponDiscount.textContent = '−' + formatRupees(outputTotals.couponDiscount);
+    }
     cardNotice.textContent = getPackageNotice(state);
     cardPlatforms.replaceChildren();
     state.platforms.forEach(function (platform) {
@@ -499,6 +560,45 @@
     if (!managementToggle.checked) platformInputs.forEach(function (input) { input.checked = false; });
     updateDraftState();
   });
+
+  couponApplyButton.addEventListener('click', function () {
+    var couponResult = validateCouponCode(couponInput.value);
+    if (!couponResult.valid) {
+      setCouponFeedback(couponResult.message, 'error');
+      return;
+    }
+
+    var previousCoupon = appliedCoupon;
+    appliedCoupon = null;
+    var couponlessSelection = readDraftSelection();
+    appliedCoupon = previousCoupon;
+    if (!couponlessSelection.valid) {
+      setCouponFeedback(couponlessSelection.message, 'error');
+      return;
+    }
+
+    var originalTotal = calculatePackageTotal(couponlessSelection);
+    if (couponResult.amount >= originalTotal) {
+      setCouponFeedback('This coupon requires a package total higher than its discount value.', 'error');
+      return;
+    }
+
+    appliedCoupon = { code: couponResult.code, amount: couponResult.amount };
+    couponInput.value = couponResult.code;
+    couponRemoveButton.hidden = false;
+    setCouponFeedback('Coupon ' + couponResult.code + ' applied. ' + formatRupees(couponResult.amount) + ' will be deducted when you create the package.', 'valid');
+    updateDraftState();
+  });
+
+  couponRemoveButton.addEventListener('click', function () {
+    appliedCoupon = null;
+    couponInput.value = '';
+    couponRemoveButton.hidden = true;
+    setCouponFeedback('Coupon removed.', '');
+    updateDraftState();
+    couponInput.focus();
+  });
+
   form.addEventListener('input', updateDraftState);
   form.addEventListener('change', updateDraftState);
 
@@ -534,6 +634,8 @@
 
     generatedSelection = cloneSelection(draftSelection);
     generatedTotal = calculatePackageTotal(generatedSelection);
+    var originalTotal = generatedTotal;
+    generatedTotal = originalTotal - (generatedSelection.coupon ? generatedSelection.coupon.amount : 0);
     isGenerated = true;
     isDirty = false;
 
@@ -643,7 +745,9 @@
       youtube.videos.every(function (video) { return video && Number.isInteger(video.durationMinutes) && video.durationMinutes >= 1 && video.durationMinutes <= 180; }) &&
       (!youtube.enabled || Object.prototype.hasOwnProperty.call(YOUTUBE_EDITING_TYPES, youtube.editingType)) &&
       Array.isArray(youtube.addOns) && youtube.addOns.every(function (key) { return Object.prototype.hasOwnProperty.call(YOUTUBE_ADDONS, key); });
-    return quantitiesAreSafe && platformsAreSafe && youtubeSafe && typeof selection.management === 'boolean';
+    var couponSafe = selection.coupon === null || (selection.coupon && validateCouponCode(selection.coupon.code).valid &&
+      validateCouponCode(selection.coupon.code).code === selection.coupon.code && validateCouponCode(selection.coupon.code).amount === selection.coupon.amount);
+    return quantitiesAreSafe && platformsAreSafe && youtubeSafe && couponSafe && typeof selection.management === 'boolean';
   }
 
   function applySelectionToBuilder(selection) {
@@ -661,6 +765,10 @@
     youtubeDetails.hidden = !youtubeLongForm.enabled;
     youtubeEditingInputs.forEach(function (input) { input.checked = input.value === youtubeLongForm.editingType; });
     youtubeAddonInputs.forEach(function (input) { input.checked = Boolean(youtubeLongForm.addOns[input.value]); });
+    appliedCoupon = selection.coupon ? { code: selection.coupon.code, amount: selection.coupon.amount } : null;
+    couponInput.value = appliedCoupon ? appliedCoupon.code : '';
+    couponRemoveButton.hidden = !appliedCoupon;
+    if (appliedCoupon) setCouponFeedback('Coupon ' + appliedCoupon.code + ' applied.', 'valid');
   }
 
   function restoreStoredBuilderState() {
@@ -671,7 +779,8 @@
     if (isSafeStoredSelection(stored.generated) && snapshot && snapshot.version === QUOTATION_VERSION &&
         selectionKey(snapshot.selection) === selectionKey(stored.generated)) {
       generatedSelection = cloneSelection(stored.generated);
-      generatedTotal = calculatePackageTotal(generatedSelection);
+      var restoredOriginalTotal = calculatePackageTotal(generatedSelection);
+      generatedTotal = restoredOriginalTotal - (generatedSelection.coupon ? generatedSelection.coupon.amount : 0);
       isGenerated = true;
       currentQuotationSnapshot = snapshot;
       var generatedState = createGeneratedState();
@@ -780,6 +889,7 @@
   }
 
   function buildWhatsAppMessage(state, quotationUrl) {
+    var outputTotals = createCouponOutputTotals(state);
     var lines = [
       'Hello Zyntra Studio,',
       '',
@@ -801,7 +911,11 @@
       lines.push('YouTube Long-Form Videos: ' + youtubeDetails);
     }
     if (state.management) lines.push('Social Media Management: Included');
-    lines.push('', 'FINAL PACKAGE TOTAL', state.quoteOnly ? 'CUSTOM QUOTE REQUIRED' : formatRupees(state.total));
+    if (state.coupon) {
+      lines.push('', 'Package Total: ' + formatRupees(outputTotals.packageTotal));
+      lines.push('Coupon Discount: −' + formatRupees(outputTotals.couponDiscount));
+    }
+    lines.push('', 'FINAL PACKAGE TOTAL', state.quoteOnly ? 'CUSTOM QUOTE REQUIRED' : formatRupees(outputTotals.finalPackageTotal));
     if (quotationUrl) lines.push('', 'Quotation Image: ' + quotationUrl);
     lines.push('', 'I would like to discuss this package.');
     return lines.join('\n');

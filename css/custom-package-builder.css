@@ -89,6 +89,18 @@
 #custom-package-builder .custom-package-builder__youtube-notice{padding:14px 16px;border-left:2px solid var(--cyan-accent);border-radius:0 11px 11px 0;background:rgba(84,216,255,.07)}
 #custom-package-builder .custom-package-builder__youtube-notice p{margin:0;color:#bac5d8;font-size:.72rem;line-height:1.58}
 #custom-package-builder .custom-package-builder__youtube-notice p+p{margin-top:8px;color:#d7e2f4}
+#custom-package-builder .custom-package-builder__coupon{min-width:0}
+#custom-package-builder .custom-package-builder__coupon legend span{color:var(--text-muted);font-size:.72rem;font-weight:600}
+#custom-package-builder .custom-package-builder__coupon-controls{display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:10px}
+#custom-package-builder .custom-package-builder__coupon-controls input{min-width:0;height:46px;padding:0 14px;border:1px solid rgba(116,153,255,.24);border-radius:11px;color:#fff;background:rgba(4,9,20,.62);font:700 .82rem/1 "Manrope",sans-serif;letter-spacing:.04em;text-transform:uppercase}
+#custom-package-builder .custom-package-builder__coupon-controls input::placeholder{color:#7f8ba0;font-weight:500;letter-spacing:0;text-transform:none}
+#custom-package-builder .custom-package-builder__coupon-controls input:focus-visible{outline:2px solid var(--cyan-accent);outline-offset:2px}
+#custom-package-builder .custom-package-builder__coupon-controls input[aria-invalid="true"]{border-color:var(--danger)}
+#custom-package-builder .custom-package-builder__coupon-controls .btn{min-width:92px;min-height:46px;margin:0;padding:10px 16px}
+#custom-package-builder .custom-package-builder__coupon-controls [hidden]{display:none}
+#custom-package-builder .custom-package-builder__coupon-status{min-height:20px;margin:8px 0 0;color:var(--text-muted);font-size:.75rem;line-height:1.45}
+#custom-package-builder .custom-package-builder__coupon-status.is-valid{color:var(--success)}
+#custom-package-builder .custom-package-builder__coupon-status.is-error{color:var(--danger)}
 #custom-package-builder .custom-package-builder__summary{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:20px;border:1px solid rgba(84,216,255,.28);border-radius:16px;background:linear-gradient(120deg,rgba(40,100,255,.16),rgba(128,109,255,.1))}
 #custom-package-builder .custom-package-builder__total-label{margin:0;color:var(--cyan-accent);font-size:.68rem;font-weight:800;letter-spacing:.14em}
 #custom-package-builder .custom-package-builder__total{display:block;max-width:520px;margin-top:7px;color:#fff;font-family:"Manrope",sans-serif;font-size:clamp(.9rem,1.8vw,1.05rem);font-weight:700;line-height:1.5;overflow-wrap:anywhere}
@@ -126,6 +138,11 @@
 #custom-package-builder .custom-package-card__management strong{flex:1 1 230px;font-size:.8rem;line-height:1.5}
 #custom-package-builder .custom-package-card__management span{flex:2 1 360px;color:#b8c1d1;font-size:.69rem;line-height:1.58;text-align:right;overflow-wrap:anywhere}
 #custom-package-builder .custom-package-card__footer{padding:28px 32px 30px;border-top:1px solid rgba(116,153,255,.2);background:rgba(3,7,16,.55)}
+#custom-package-builder .custom-package-card__price-breakdown{display:grid;gap:9px;margin-bottom:16px;padding-bottom:16px;border-bottom:1px solid rgba(116,153,255,.16)}
+#custom-package-builder .custom-package-card__price-breakdown[hidden]{display:none}
+#custom-package-builder .custom-package-card__price-breakdown>div{display:flex;align-items:center;justify-content:space-between;gap:16px}
+#custom-package-builder .custom-package-card__price-breakdown span{color:#aeb9ca;font-size:.62rem;font-weight:800;letter-spacing:.1em}
+#custom-package-builder .custom-package-card__price-breakdown strong{color:#e8eef9;font-size:.88rem}
 #custom-package-builder .custom-package-card__price{display:flex;align-items:end;justify-content:space-between;gap:16px}
 #custom-package-builder .custom-package-card__price span{color:var(--cyan-accent);font-size:.65rem;font-weight:800;letter-spacing:.14em}
 #custom-package-builder .custom-package-card__price strong{font-family:"Manrope",sans-serif;font-size:clamp(2rem,5vw,3rem);letter-spacing:-.05em;line-height:1;overflow-wrap:anywhere}
@@ -147,6 +164,7 @@
 @media(max-width:390px){#custom-package-builder .custom-package-builder__inner{width:calc(100% - 20px)}#custom-package-builder .custom-package-builder__share-actions{grid-template-columns:minmax(0,1fr)}#custom-package-builder .custom-package-builder__panel{padding:14px}#custom-package-builder .custom-package-builder__service{grid-template-columns:1fr}#custom-package-builder .custom-package-builder__quantity{justify-self:start}#custom-package-builder .custom-package-card__header{align-items:flex-start}#custom-package-builder .custom-package-card__tag{max-width:118px;line-height:1.35;text-align:center}}
 @media(max-width:700px){#custom-package-builder .custom-package-builder__youtube{padding:16px}#custom-package-builder .custom-package-builder__durations{grid-template-columns:minmax(0,1fr)}#custom-package-builder .custom-package-builder__choice-grid{grid-template-columns:minmax(0,1fr)}#custom-package-builder .custom-package-builder__choice-grid--addons{grid-template-columns:repeat(2,minmax(0,1fr))}#custom-package-builder .custom-package-builder__total{font-size:clamp(.9rem,4vw,1rem)}#custom-package-builder .custom-package-card__youtube div{grid-template-columns:minmax(0,1fr)}}
 @media(max-width:390px){#custom-package-builder .custom-package-builder__youtube-count-row{align-items:flex-start;flex-direction:column}#custom-package-builder .custom-package-builder__choice-grid--addons{grid-template-columns:minmax(0,1fr)}}
+@media(max-width:520px){#custom-package-builder .custom-package-builder__coupon-controls{grid-template-columns:repeat(2,minmax(0,1fr))}#custom-package-builder .custom-package-builder__coupon-controls input{grid-column:1/-1}#custom-package-builder .custom-package-builder__coupon-controls .btn{width:100%;min-width:0}}
 @media(max-width:700px){#custom-package-builder .custom-package-builder__ai-videos{padding:14px 12px}#custom-package-builder .custom-package-builder__ai-video-option{gap:10px;padding:14px 12px}#custom-package-builder .custom-package-builder__ai-videos-header p,#custom-package-builder .custom-package-builder__ai-video-option p{font-size:.7rem}}
 @media(max-width:390px){#custom-package-builder .custom-package-builder__ai-video-option{grid-template-columns:minmax(0,1fr)}#custom-package-builder .custom-package-builder__ai-video-option .custom-package-builder__quantity{justify-self:start}#custom-package-builder .custom-package-builder__ai-video-option h4 span{white-space:normal}}
 @media(max-width:700px){#custom-package-builder .custom-package-builder__quotation-actions{grid-template-columns:minmax(0,1fr);gap:10px}#custom-package-builder .custom-package-builder__quotation-actions:has(.custom-package-builder__download[hidden]){grid-template-columns:minmax(0,1fr)}}

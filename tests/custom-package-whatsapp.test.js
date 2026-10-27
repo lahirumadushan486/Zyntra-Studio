@@ -20,9 +20,10 @@ assert.match(script, /var WHATSAPP_CONFIG = Object\.freeze\(\{[\s\S]*companyNumb
 assert.match(script, /cardWhatsappContact\.textContent = 'Call \/ WhatsApp: ' \+ formatLocalWhatsappNumber\(WHATSAPP_CONFIG\.companyNumber\)/);
 assert.match(script, /'https:\/\/wa\.me\/' \+ WHATSAPP_CONFIG\.companyNumber \+ '\?text=' \+ encodeURIComponent\(message\)/);
 assert.doesNotMatch(script, /wa\.me\/947046004033/, 'The fixed number must not be duplicated in URL construction');
+const displayTotals = script.match(/function createCouponOutputTotals\(state\) \{[\s\S]*?\n  \}/);
 const start = script.indexOf('  function buildWhatsAppMessage');
 const end = script.indexOf('  function resetWhatsAppButton', start);
-assert.ok(start >= 0 && end > start, 'WhatsApp message and URL builders must exist');
+assert.ok(displayTotals && start >= 0 && end > start, 'WhatsApp message, display totals and URL builders must exist');
 const context = {
   WHATSAPP_CONFIG: { companyNumber: '947046004033' },
   YOUTUBE_ADDONS: { thumbnail: 'Thumbnail Design', subtitles: 'Subtitles', introOutro: 'Intro / Outro', motionGraphics: 'Motion Graphics' },
@@ -30,7 +31,7 @@ const context = {
   encodeURIComponent
 };
 vm.createContext(context);
-vm.runInContext(script.slice(start, end), context);
+vm.runInContext(`${displayTotals[0]}\n${script.slice(start, end)}`, context);
 
 const state = {
   platforms: ['Facebook', 'Instagram'],

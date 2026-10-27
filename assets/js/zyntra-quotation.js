@@ -1,3 +1,5 @@
+import { COUPON_CONFIG } from '../../js/coupon-config.js';
+
 (function () {
   'use strict';
 
@@ -45,6 +47,20 @@
     return typeof value === 'string' && value.length > 0 && value.length <= maximum;
   }
 
+  function escapeRegExp(value) {
+    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+
+  function validCoupon(coupon) {
+    if (coupon === null) return true;
+    if (!COUPON_CONFIG.enabled || !coupon || typeof coupon.code !== 'string' || !Number.isSafeInteger(coupon.amount)) return false;
+    var pattern = new RegExp('^' + escapeRegExp(COUPON_CONFIG.prefix.toUpperCase()) + '([1-9]\\d*)$');
+    var match = pattern.exec(coupon.code);
+    if (!match) return false;
+    var amount = Number(match[1]);
+    return coupon.code === coupon.code.toUpperCase() && amount === coupon.amount && amount >= COUPON_CONFIG.minimumDiscount && amount <= COUPON_CONFIG.maximumDiscount;
+  }
+
   function validSelection(selection) {
     if (!selection || !selection.quantities || !selection.youtube || !Array.isArray(selection.platforms)) return false;
     var quantityKeys = ['posts', 'video25', 'video50', 'stories', 'aiVideo45', 'aiVideo90'];
@@ -59,7 +75,7 @@
       youtube.videos.every(function (video) { return video && Number.isInteger(video.durationMinutes) && video.durationMinutes >= 1 && video.durationMinutes <= 180; }) &&
       (!youtube.enabled || ALLOWED_EDITING_TYPES.includes(youtube.editingType)) && Array.isArray(youtube.addOns) &&
       youtube.addOns.every(function (addon) { return ALLOWED_ADDONS.includes(addon); });
-    return quantitiesValid && platformsValid && youtubeValid && typeof selection.management === 'boolean';
+    return quantitiesValid && platformsValid && youtubeValid && validCoupon(selection.coupon) && typeof selection.management === 'boolean';
   }
 
   function calculateStaticPostsPrice(postCount) {
@@ -93,10 +109,16 @@
     if (!snapshot || snapshot.version !== VERSION || !isSafeString(snapshot.reference, 80)) return false;
     if (!isIsoDate(snapshot.issueDate) || !isIsoDate(snapshot.expiryDate) || snapshot.expiryDate !== addCalendarDays(snapshot.issueDate, 28)) return false;
     if (!validSelection(snapshot.selection) || !Array.isArray(snapshot.services) || snapshot.services.length < 1 || snapshot.services.length > 8) return false;
-    if (!Number.isSafeInteger(snapshot.total) || snapshot.total < 0 || snapshot.total > 1000000000) return false;
+    if (!Number.isSafeInteger(snapshot.originalTotal) || snapshot.originalTotal < 0 || snapshot.originalTotal > 1000000000) return false;
+    if (!Number.isSafeInteger(snapshot.total) || snapshot.total < 0 || snapshot.total > 1000000000 || !validCoupon(snapshot.coupon)) return false;
     if (typeof snapshot.quoteOnly !== 'boolean' || typeof snapshot.monthly !== 'boolean' || typeof snapshot.hasQuoteOnlyService !== 'boolean') return false;
-    if (snapshot.total !== calculateExpectedTotal(snapshot.selection)) return false;
-    if (snapshot.quoteOnly !== (snapshot.selection.youtube.enabled && snapshot.total === 0)) return false;
+    var expectedOriginalTotal = calculateExpectedTotal(snapshot.selection);
+    if (!snapshot.coupon && snapshot.total !== calculateExpectedTotal(snapshot.selection)) return false;
+    if (snapshot.originalTotal !== expectedOriginalTotal) return false;
+    if (JSON.stringify(snapshot.coupon) !== JSON.stringify(snapshot.selection.coupon)) return false;
+    if (snapshot.coupon && snapshot.coupon.amount >= expectedOriginalTotal) return false;
+    if (snapshot.total !== expectedOriginalTotal - (snapshot.coupon ? snapshot.coupon.amount : 0)) return false;
+    if (snapshot.quoteOnly !== (snapshot.selection.youtube.enabled && snapshot.originalTotal === 0)) return false;
     if (snapshot.monthly !== Boolean(snapshot.selection.management && snapshot.selection.platforms.length)) return false;
     if (snapshot.hasQuoteOnlyService !== snapshot.selection.youtube.enabled) return false;
     var ids = [];
@@ -147,7 +169,16 @@
     return items;
   }
 
+  function createQuotationDisplayTotals(snapshot) {
+    return {
+      packageTotal: snapshot.originalTotal,
+      couponDiscount: snapshot.coupon ? snapshot.coupon.amount : 0,
+      finalPackageTotal: snapshot.total
+    };
+  }
+
   function renderSnapshot(snapshot) {
+    var displayTotals = createQuotationDisplayTotals(snapshot);
     document.getElementById('quotation-reference').textContent = snapshot.reference;
     document.getElementById('quotation-issued').textContent = formatDate(snapshot.issueDate);
     document.getElementById('quotation-expiry').textContent = formatDate(snapshot.expiryDate);
@@ -176,8 +207,15 @@
       document.getElementById('quotation-included-section').hidden = false;
     }
 
-    document.getElementById('quotation-total-label').textContent = snapshot.quoteOnly ? 'PACKAGE TOTAL' : (snapshot.monthly ? 'MONTHLY PACKAGE TOTAL' : 'PACKAGE TOTAL');
-    document.getElementById('quotation-total').textContent = snapshot.quoteOnly ? 'Custom quote required' : formatRupees(snapshot.total);
+    document.getElementById('quotation-total-label').textContent = snapshot.quoteOnly ? 'PACKAGE TOTAL' : (snapshot.coupon ? 'FINAL PACKAGE TOTAL' : (snapshot.monthly ? 'MONTHLY PACKAGE TOTAL' : 'PACKAGE TOTAL'));
+    document.getElementById('quotation-total').textContent = snapshot.quoteOnly ? 'Custom quote required' : formatRupees(displayTotals.finalPackageTotal);
+    if (snapshot.coupon) {
+      document.getElementById('quotation-original-total').textContent = formatRupees(displayTotals.packageTotal);
+      document.getElementById('quotation-coupon-label').textContent = 'COUPON DISCOUNT';
+      document.getElementById('quotation-coupon-discount').textContent = '−' + formatRupees(displayTotals.couponDiscount);
+      document.getElementById('quotation-original-row').hidden = false;
+      document.getElementById('quotation-coupon-row').hidden = false;
+    }
     document.getElementById('quotation-quote-only-notice').hidden = !snapshot.hasQuoteOnlyService;
     document.getElementById('quotation-advertising-notice').textContent = snapshot.selection.management && snapshot.selection.platforms.length
       ? 'Ad boosting support is included with your selected social media management package. Advertising spend/ad budget is not included and will be discussed separately.'
