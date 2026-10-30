@@ -1,4 +1,15 @@
 import { COUPON_CONFIG } from './coupon-config.js';
+import {
+  QUOTATION_PRICING,
+  QUOTATION_VERSION,
+  addQuotationDays,
+  calculateQuotationTotal,
+  calculateStaticPostsPrice as calculateSharedStaticPostsPrice,
+  createQuotationSnapshot as createSharedQuotationSnapshot,
+  createWindowNameEnvelope,
+  normalizeAndValidateQuotationSnapshot,
+  quotationStorageKey
+} from './quotation-schema.js';
 
 (function () {
   'use strict';
@@ -6,24 +17,8 @@ import { COUPON_CONFIG } from './coupon-config.js';
   var root = document.getElementById('custom-package-builder');
   if (!root) return;
 
-  var PRICING = Object.freeze({
-    managementFirstPlatform: 7000,
-    managementAdditionalPlatform: 1000,
-    staticPosts: Object.freeze({
-      standardRate: 1000,
-      bulkRate: 800,
-      bulkRateStartsAt: 11
-    }),
-    video25: 2000,
-    video50: 3000,
-    story: 1400,
-    aiVideo45: 3500,
-    aiVideo90: 5500,
-    maximumQuantity: 999
-  });
-  var QUOTATION_STORAGE_KEY = 'zyntra.customPackageQuotation.v1';
+  var PRICING = QUOTATION_PRICING;
   var BUILDER_STORAGE_KEY = 'zyntra.customPackageBuilder.v1';
-  var QUOTATION_VERSION = 1;
   var WHATSAPP_CONFIG = Object.freeze({
     companyNumber: '947046004033'
   });
@@ -153,6 +148,39 @@ import { COUPON_CONFIG } from './coupon-config.js';
     }
   }
 
+  function readStorageJson(storage, key) {
+    try {
+      var raw = storage.getItem(key);
+      return raw ? JSON.parse(raw) : null;
+    } catch (error) {
+      return null;
+    }
+  }
+
+  function writeAndVerifyStorage(storage, key, value) {
+    try {
+      var serialized = JSON.stringify(value);
+      storage.setItem(key, serialized);
+      return storage.getItem(key) === serialized;
+    } catch (error) {
+      return false;
+    }
+  }
+
+  function persistQuotationSnapshot(snapshot) {
+    var key = quotationStorageKey(snapshot.reference);
+    var savedLocally = writeAndVerifyStorage(window.localStorage, key, snapshot);
+    var savedForTab = writeAndVerifyStorage(window.sessionStorage, key, snapshot);
+    return savedLocally || savedForTab;
+  }
+
+  function readPersistedQuotation(reference) {
+    if (!reference) return null;
+    var key = quotationStorageKey(reference);
+    return normalizeAndValidateQuotationSnapshot(readStorageJson(window.sessionStorage, key)) ||
+      normalizeAndValidateQuotationSnapshot(readStorageJson(window.localStorage, key));
+  }
+
   function getColomboDateParts(date) {
     var parts = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Asia/Colombo', year: 'numeric', month: '2-digit', day: '2-digit'
@@ -167,10 +195,7 @@ import { COUPON_CONFIG } from './coupon-config.js';
   }
 
   function addCalendarDays(isoDate, days) {
-    var match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(isoDate);
-    if (!match) return '';
-    var date = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3]) + days));
-    return date.getUTCFullYear() + '-' + String(date.getUTCMonth() + 1).padStart(2, '0') + '-' + String(date.getUTCDate()).padStart(2, '0');
+    return addQuotationDays(isoDate, days);
   }
 
   function createQuotationReference(issueDate) {
@@ -186,17 +211,7 @@ import { COUPON_CONFIG } from './coupon-config.js';
   }
 
   function calculateStaticPostsPrice(quantity) {
-    var postCount = Math.max(0, Math.floor(Number(quantity) || 0));
-
-    if (postCount === 0) {
-      return 0;
-    }
-
-    var ratePerPost = postCount < PRICING.staticPosts.bulkRateStartsAt
-      ? PRICING.staticPosts.standardRate
-      : PRICING.staticPosts.bulkRate;
-
-    return postCount * ratePerPost;
+    return calculateSharedStaticPostsPrice(quantity);
   }
 
   function calculateAiVideosPrice(aiVideo45Quantity, aiVideo90Quantity) {
@@ -283,12 +298,7 @@ import { COUPON_CONFIG } from './coupon-config.js';
   }
 
   function calculatePackageTotal(selection) {
-    var managementTotal = selection.management && selection.platforms.length
-      ? PRICING.managementFirstPlatform + Math.max(selection.platforms.length - 1, 0) * PRICING.managementAdditionalPlatform
-      : 0;
-    var postTotal = calculateStaticPostsPrice(selection.quantities.posts);
-    var aiVideoTotal = calculateAiVideosPrice(selection.quantities.aiVideo45, selection.quantities.aiVideo90);
-    return managementTotal + postTotal + selection.quantities.video25 * PRICING.video25 + selection.quantities.video50 * PRICING.video50 + selection.quantities.stories * PRICING.story + aiVideoTotal;
+    return calculateQuotationTotal(selection);
   }
 
   function cloneSelection(selection) {
@@ -308,6 +318,21 @@ import { COUPON_CONFIG } from './coupon-config.js';
         addOns: selection.youtube.addOns
       },
       coupon: selection.coupon
+    });
+  }
+
+  function quotationSelectionKey(selection) {
+    if (!selection) return '';
+    return JSON.stringify({
+      quantities: selection.quantities,
+      platforms: selection.platforms,
+      management: selection.management,
+      youtube: {
+        enabled: selection.youtube.enabled,
+        videos: selection.youtube.videos,
+        editingType: selection.youtube.editingType,
+        addOns: selection.youtube.addOns
+      }
     });
   }
 
@@ -343,21 +368,13 @@ import { COUPON_CONFIG } from './coupon-config.js';
 
   function createQuotationSnapshot(state) {
     var issueDate = datePartsToIso(getColomboDateParts(new Date()));
-    return {
-      version: QUOTATION_VERSION,
+    return createSharedQuotationSnapshot({
       reference: createQuotationReference(issueDate),
       issueDate: issueDate,
-      expiryDate: addCalendarDays(issueDate, 28),
       selection: cloneSelection(generatedSelection),
-      services: buildQuotationServices(state),
-      originalTotal: state.originalTotal,
-      coupon: state.coupon ? { code: state.coupon.code, amount: state.coupon.amount } : null,
-      total: state.total,
-      quoteOnly: state.quoteOnly,
-      monthly: Boolean(state.management && state.platforms.length),
-      hasQuoteOnlyService: Boolean(state.youtube.enabled),
+      discountAmount: state.coupon ? state.coupon.amount : 0,
       createdAt: new Date().toISOString()
-    };
+    });
   }
 
   function saveBuilderState() {
@@ -366,7 +383,8 @@ import { COUPON_CONFIG } from './coupon-config.js';
       version: QUOTATION_VERSION,
       draft: cloneSelection(draftSelection),
       generated: generatedSelection ? cloneSelection(generatedSelection) : null,
-      total: generatedTotal
+      total: generatedTotal,
+      quotationReference: currentQuotationSnapshot ? currentQuotationSnapshot.reference : null
     });
   }
 
@@ -641,7 +659,7 @@ import { COUPON_CONFIG } from './coupon-config.js';
 
     var generatedState = createGeneratedState();
     currentQuotationSnapshot = createQuotationSnapshot(generatedState);
-    writeSessionJson(QUOTATION_STORAGE_KEY, currentQuotationSnapshot);
+    persistQuotationSnapshot(currentQuotationSnapshot);
     updateCard(generatedState);
     preparedWhatsappUrl = buildWhatsappUrl(buildWhatsAppMessage(generatedState, ''));
     downloadStatus.textContent = '';
@@ -775,9 +793,10 @@ import { COUPON_CONFIG } from './coupon-config.js';
     var stored = readSessionJson(BUILDER_STORAGE_KEY);
     if (!stored || stored.version !== QUOTATION_VERSION || !isSafeStoredSelection(stored.draft)) return false;
     applySelectionToBuilder(stored.draft);
-    var snapshot = readSessionJson(QUOTATION_STORAGE_KEY);
-    if (isSafeStoredSelection(stored.generated) && snapshot && snapshot.version === QUOTATION_VERSION &&
-        selectionKey(snapshot.selection) === selectionKey(stored.generated)) {
+    var snapshot = readPersistedQuotation(stored.quotationReference);
+    var storedDiscount = stored.generated && stored.generated.coupon ? stored.generated.coupon.amount : 0;
+    if (isSafeStoredSelection(stored.generated) && snapshot && snapshot.totals.discount === storedDiscount &&
+        quotationSelectionKey(snapshot.selection) === quotationSelectionKey(stored.generated)) {
       generatedSelection = cloneSelection(stored.generated);
       var restoredOriginalTotal = calculatePackageTotal(generatedSelection);
       generatedTotal = restoredOriginalTotal - (generatedSelection.coupon ? generatedSelection.coupon.amount : 0);
@@ -937,11 +956,14 @@ import { COUPON_CONFIG } from './coupon-config.js';
     if (isWhatsappSharing) return;
     updateDraftState();
     if (!isGenerated || isDirty) return;
-    if (!currentQuotationSnapshot || !writeSessionJson(QUOTATION_STORAGE_KEY, currentQuotationSnapshot)) {
-      downloadStatus.textContent = 'The quotation preview is unavailable because this browser could not save the generated quotation. Please allow session storage and try again.';
+    if (!currentQuotationSnapshot || !normalizeAndValidateQuotationSnapshot(currentQuotationSnapshot)) {
+      downloadStatus.textContent = 'The generated quotation is incomplete. Please create the package again.';
       return;
     }
-    window.location.assign('quotation.html');
+    var persisted = persistQuotationSnapshot(currentQuotationSnapshot);
+    try { window.name = createWindowNameEnvelope(currentQuotationSnapshot); } catch (error) {}
+    if (!persisted) downloadStatus.textContent = 'Browser storage is unavailable. Opening this quotation in the current tab instead.';
+    window.location.assign('quotation.html?quote=' + encodeURIComponent(currentQuotationSnapshot.reference));
   });
 
   whatsappButton.addEventListener('click', function () {

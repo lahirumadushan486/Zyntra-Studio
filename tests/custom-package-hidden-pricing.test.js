@@ -33,12 +33,12 @@ assert.match(submitHandler, /generatedSelection = cloneSelection\(draftSelection
 assert.match(submitHandler, /generatedTotal = calculatePackageTotal\(generatedSelection\)/);
 assert.match(submitHandler, /updateCard\(generatedState\)/);
 assert.match(submitHandler, /currentQuotationSnapshot = createQuotationSnapshot\(generatedState\)/);
-assert.match(submitHandler, /writeSessionJson\(QUOTATION_STORAGE_KEY, currentQuotationSnapshot\)/);
+assert.match(submitHandler, /persistQuotationSnapshot\(currentQuotationSnapshot\)/);
 
 // Download and WhatsApp can only use a clean generated snapshot.
 assert.match(downloadHandler, /if \(!isGenerated \|\| isDirty\) return/);
-assert.match(downloadHandler, /writeSessionJson\(QUOTATION_STORAGE_KEY, currentQuotationSnapshot\)/);
-assert.match(downloadHandler, /window\.location\.assign\('quotation\.html'\)/);
+assert.match(downloadHandler, /persistQuotationSnapshot\(currentQuotationSnapshot\)/);
+assert.match(downloadHandler, /window\.location\.assign\('quotation\.html\?quote='/);
 assert.doesNotMatch(downloadHandler, /updateCard\(|calculatePackageTotal\(/);
 assert.match(script, /if \(!isGenerated \|\| isDirty \|\| !preparedWhatsappUrl\)/);
 

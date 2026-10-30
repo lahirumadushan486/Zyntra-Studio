@@ -6,9 +6,10 @@ const vm = require('node:vm');
 
 const html = fs.readFileSync('index.html', 'utf8');
 const script = fs.readFileSync('js/custom-package-builder.js', 'utf8');
+const schema = fs.readFileSync('js/quotation-schema.js', 'utf8');
 const styles = fs.readFileSync('css/custom-package-builder.css', 'utf8');
 
-const pricingSource = script.match(/var PRICING = Object\.freeze\((\{[\s\S]*?\n  \})\);/);
+const pricingSource = schema.match(/export const QUOTATION_PRICING = Object\.freeze\((\{[\s\S]*?\n\})\);/);
 const calculatorSource = script.match(/function calculateAiVideosPrice\(aiVideo45Quantity, aiVideo90Quantity\) \{[\s\S]*?\n  \}/);
 assert.ok(pricingSource, 'Central pricing configuration must exist');
 assert.ok(calculatorSource, 'AI video calculator must exist');
@@ -38,7 +39,7 @@ assert.match(html, /aria-label="Increase AI videos up to 45 seconds"/);
 assert.match(html, /aria-label="Decrease AI videos up to 1\.5 minutes"/);
 assert.match(html, /aria-label="Increase AI videos up to 1\.5 minutes"/);
 
-assert.match(script, /var aiVideoTotal = calculateAiVideosPrice\(selection\.quantities\.aiVideo45, selection\.quantities\.aiVideo90\);/);
+assert.match(script, /return calculateQuotationTotal\(selection\);/);
 assert.match(script, /mainContentCount = quantities\.posts \+ quantities\.video25 \+ quantities\.video50 \+ quantities\.aiVideo45 \+ quantities\.aiVideo90/);
 assert.match(script, /hasPrimaryContent = mainContentCount > 0 \|\| youtube\.valid/);
 assert.match(script, /root\.querySelectorAll\('\[data-quantity-control\]'\)/, 'AI controls must reuse the existing increment/decrement behavior');
@@ -63,13 +64,13 @@ assert.match(styles, /@media\(max-width:390px\)\{[^}]*custom-package-builder__ai
 assert.doesNotMatch(styles, /custom-package-builder__ai-(?:videos|video-option)\{[^}]*(?:width:\s*\d{4,}px|min-width:\s*\d{4,}px)/);
 
 // Existing prices and quote-only behavior remain contract values.
-assert.match(script, /managementFirstPlatform:\s*7000/);
-assert.match(script, /managementAdditionalPlatform:\s*1000/);
-assert.match(script, /standardRate:\s*1000/);
-assert.match(script, /bulkRate:\s*900/);
-assert.match(script, /video25:\s*2000/);
-assert.match(script, /video50:\s*3000/);
-assert.match(script, /story:\s*1400/);
-assert.match(script, /state\.quoteOnly = state\.youtube\.enabled && generatedTotal === 0/);
+assert.match(schema, /managementFirstPlatform:\s*7000/);
+assert.match(schema, /managementAdditionalPlatform:\s*1000/);
+assert.match(schema, /standardRate:\s*1000/);
+assert.match(schema, /bulkRate:\s*900/);
+assert.match(schema, /video25:\s*2000/);
+assert.match(schema, /video50:\s*3000/);
+assert.match(schema, /story:\s*1400/);
+assert.match(script, /state\.quoteOnly = state\.youtube\.enabled && state\.originalTotal === 0/);
 
 console.log('Custom package AI video tests: PASS');

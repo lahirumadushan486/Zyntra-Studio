@@ -81,8 +81,9 @@ async function run() {
   assert.match(await evaluate(`document.querySelector('#custom-package-total').textContent`), /shown after you create/);
   await evaluate(`document.querySelector('#custom-package-form').requestSubmit()`);
   const firstGenerated = await evaluate(`(() => {
-    const snapshot = JSON.parse(sessionStorage.getItem('zyntra.customPackageQuotation.v1'));
-    return { total: snapshot.total, reference: snapshot.reference, issue: snapshot.issueDate, expiry: snapshot.expiryDate,
+    const builder = JSON.parse(sessionStorage.getItem('zyntra.customPackageBuilder.v1'));
+    const snapshot = JSON.parse(localStorage.getItem('zyntra.customPackageQuotation.v2.' + builder.quotationReference));
+    return { total: snapshot.totals.final, reference: snapshot.reference, issue: snapshot.issueDate, expiry: snapshot.expiryDate,
       card: document.querySelector('#custom-card-total').textContent, actionDisabled: document.querySelector('#custom-package-download').disabled };
   })()`);
   assert.equal(firstGenerated.total, 18000);
@@ -94,7 +95,7 @@ async function run() {
     notice: document.querySelector('#custom-package-total').textContent,
     resultHidden: document.querySelector('#custom-package-result').hidden,
     disabled: document.querySelector('#custom-package-download').disabled,
-    storedTotal: JSON.parse(sessionStorage.getItem('zyntra.customPackageQuotation.v1')).total
+    storedTotal: (() => { const b=JSON.parse(sessionStorage.getItem('zyntra.customPackageBuilder.v1')); return JSON.parse(localStorage.getItem('zyntra.customPackageQuotation.v2.'+b.quotationReference)).totals.final; })()
   }))()`);
   assert.match(dirty.notice, /selections have changed/);
   assert.equal(dirty.resultHidden, true);
@@ -102,7 +103,7 @@ async function run() {
   assert.equal(dirty.storedTotal, 18000);
 
   await evaluate(`(() => { const input=document.querySelector('#custom-post-count'); input.value='20'; input.dispatchEvent(new Event('input',{bubbles:true})); document.querySelector('#custom-package-form').requestSubmit(); })()`);
-  const regeneratedReference = await evaluate(`JSON.parse(sessionStorage.getItem('zyntra.customPackageQuotation.v1')).reference`);
+  const regeneratedReference = await evaluate(`JSON.parse(sessionStorage.getItem('zyntra.customPackageBuilder.v1')).quotationReference`);
   assert.notEqual(regeneratedReference, firstGenerated.reference);
 
   await evaluate(`document.querySelector('#custom-package-download').click()`);
@@ -151,7 +152,7 @@ async function run() {
 
   await navigate('http://127.0.0.1:4173/index.html#build-your-package');
   await evaluate(`(() => {
-    const posts=document.querySelector('#custom-post-count'); posts.value='0'; posts.dispatchEvent(new Event('input',{bubbles:true}));
+    ['custom-post-count','custom-video-25-count','custom-video-50-count','custom-story-count','custom-ai-video-45-count','custom-ai-video-90-count'].forEach(id => { const input=document.getElementById(id); input.value='0'; input.dispatchEvent(new Event('input',{bubbles:true})); });
     const management=document.querySelector('#custom-management-enabled'); management.checked=false; management.dispatchEvent(new Event('change',{bubbles:true}));
     const youtube=document.querySelector('#custom-youtube-enabled'); youtube.checked=true; youtube.dispatchEvent(new Event('change',{bubbles:true}));
     const basic=document.querySelector('input[name="custom-youtube-editing-type"][value="basic"]'); basic.checked=true; basic.dispatchEvent(new Event('change',{bubbles:true}));
@@ -194,23 +195,40 @@ async function run() {
   const exceptionalPages = await printPageCount();
   assert.ok(exceptionalPages >= 3, 'Exceptionally long selected details should continue beyond two pages without a hard limit');
 
-  await evaluate(`(() => { const value=JSON.parse(sessionStorage.getItem('zyntra.customPackageQuotation.v1')); value.issueDate='2020-01-01'; value.expiryDate='2020-01-29'; sessionStorage.setItem('zyntra.customPackageQuotation.v1',JSON.stringify(value)); })()`);
+  await evaluate(`(() => { const ref=new URLSearchParams(location.search).get('quote'); const key='zyntra.customPackageQuotation.v2.'+ref; const value=JSON.parse(localStorage.getItem(key)); value.issueDate='2020-01-01'; value.expiryDate='2020-01-29'; value.createdAt='2020-01-01T00:00:00.000Z'; localStorage.setItem(key,JSON.stringify(value)); sessionStorage.setItem(key,JSON.stringify(value)); window.name=''; })()`);
   await send('Page.reload', { ignoreCache: true });
   for (let attempt = 0; attempt < 100 && !(await evaluate(`document.readyState === 'complete' && document.querySelector('#quotation-expired')`)); attempt += 1) await new Promise((resolve) => setTimeout(resolve, 50));
   assert.equal(await evaluate(`document.querySelector('#quotation-expired').hidden`), false, 'Expired quotations must be marked clearly');
 
-  await evaluate(`sessionStorage.setItem('zyntra.customPackageQuotation.v1','{"version":1,"broken":true}')`);
+  await evaluate(`(() => { const ref=new URLSearchParams(location.search).get('quote'); const key='zyntra.customPackageQuotation.v2.'+ref; localStorage.setItem(key,'{"version":2,"broken":true}'); sessionStorage.setItem(key,'{"version":2,"broken":true}'); window.name=''; })()`);
   await send('Page.reload', { ignoreCache: true });
   for (let attempt = 0; attempt < 100 && !(await evaluate(`document.readyState === 'complete' && document.querySelector('#quotation-message')`)); attempt += 1) await new Promise((resolve) => setTimeout(resolve, 50));
   assert.equal(await evaluate(`document.querySelector('#quotation-message').hidden`), false, 'Malformed snapshots must show the recovery message');
 
-  await evaluate(`sessionStorage.removeItem('zyntra.customPackageQuotation.v1')`);
+  await evaluate(`(() => { const ref=new URLSearchParams(location.search).get('quote'); const key='zyntra.customPackageQuotation.v2.'+ref; localStorage.removeItem(key); sessionStorage.removeItem(key); window.name=''; history.replaceState(null,'','quotation.html'); })()`);
   await send('Page.reload', { ignoreCache: true });
   for (let attempt = 0; attempt < 100 && !(await evaluate(`document.readyState === 'complete' && document.querySelector('#quotation-message')`)); attempt += 1) await new Promise((resolve) => setTimeout(resolve, 50));
   assert.match(await evaluate(`document.querySelector('#quotation-message-text').textContent`), /No generated quotation was found/);
 
+  await navigate('http://127.0.0.1:4173/quotation.html?quote=' + encodeURIComponent(regeneratedReference));
+  for (let attempt = 0; attempt < 100 && !(await evaluate(`document.querySelector('#quotation-document') && !document.querySelector('#quotation-document').hidden`)); attempt += 1) await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.equal(await evaluate(`document.querySelector('#quotation-reference').textContent`), regeneratedReference, 'An earlier reference-keyed quotation must remain stable after later quotations are generated');
+
+  await navigate('http://127.0.0.1:4173/index.html#build-your-package');
+  await evaluate(`(() => {
+    Storage.prototype.setItem = function () { throw new DOMException('Storage blocked', 'QuotaExceededError'); };
+    ['custom-post-count','custom-video-25-count','custom-video-50-count','custom-story-count','custom-ai-video-90-count'].forEach(id => { const input=document.getElementById(id); input.value='0'; input.dispatchEvent(new Event('input',{bubbles:true})); });
+    const ai=document.querySelector('#custom-ai-video-45-count'); ai.value='1'; ai.dispatchEvent(new Event('input',{bubbles:true}));
+    const management=document.querySelector('#custom-management-enabled'); management.checked=false; management.dispatchEvent(new Event('change',{bubbles:true}));
+    const youtube=document.querySelector('#custom-youtube-enabled'); youtube.checked=false; youtube.dispatchEvent(new Event('change',{bubbles:true}));
+    document.querySelector('#custom-package-form').requestSubmit();
+    document.querySelector('#custom-package-download').click();
+  })()`);
+  for (let attempt = 0; attempt < 100 && !(await evaluate(`location.pathname.endsWith('/quotation.html') && document.querySelector('#quotation-document') && !document.querySelector('#quotation-document').hidden`)); attempt += 1) await new Promise((resolve) => setTimeout(resolve, 50));
+  assert.equal(await evaluate(`document.querySelector('#quotation-services tr:first-child td:first-child').textContent`), 'AI Videos', 'The in-memory same-tab fallback must render when browser storage writes fail');
+
   cdp.socket.close();
-  console.log(JSON.stringify({ status: 'PASS', shortPages: 1, longPages, exceptionalPages, checked: ['initial gating', 'no live total', 'dirty snapshot', 'regeneration', 'posts-only', 'management', 'AI selections', 'quote-only YouTube', 'refresh stability', 'builder restoration', 'multi-page print', 'mobile overflow', 'expired state', 'missing/malformed recovery'] }));
+  console.log(JSON.stringify({ status: 'PASS', shortPages: 1, longPages, exceptionalPages, checked: ['initial gating', 'no live total', 'dirty snapshot', 'regeneration', 'posts-only', 'management', 'AI selections', 'quote-only YouTube', 'refresh stability', 'builder restoration', 'reference-isolated quotations', 'storage-blocked in-memory fallback', 'multi-page print', 'mobile overflow', 'expired state', 'missing/malformed recovery'] }));
 }
 
 run().catch((error) => {

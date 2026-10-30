@@ -3,22 +3,23 @@ const fs = require('node:fs');
 const vm = require('node:vm');
 
 const script = fs.readFileSync('js/custom-package-builder.js', 'utf8');
+const schema = fs.readFileSync('js/quotation-schema.js', 'utf8');
 const html = fs.readFileSync('index.html', 'utf8');
 const quotationScript = fs.readFileSync('assets/js/zyntra-quotation.js', 'utf8');
 const shareFunction = fs.readFileSync('supabase/functions/share-package-quotation/index.ts', 'utf8');
 
-const pricingSource = script.match(/var PRICING = Object\.freeze\((\{[\s\S]*?\n  \})\);/);
-const calculatorSource = script.match(/function calculateStaticPostsPrice\(quantity\) \{[\s\S]*?\n  \}/);
+const pricingSource = schema.match(/export const QUOTATION_PRICING = Object\.freeze\((\{[\s\S]*?\n\})\);/);
+const calculatorSource = schema.match(/export function calculateStaticPostsPrice\(quantity\) \{[\s\S]*?\n\}/);
 
 assert.ok(pricingSource, 'Central pricing configuration must exist');
 assert.ok(calculatorSource, 'Static Posts calculator must exist');
 
 const context = {};
 vm.createContext(context);
-vm.runInContext(`var PRICING = Object.freeze(${pricingSource[1]}); ${calculatorSource[0]}`, context);
+vm.runInContext(`var QUOTATION_PRICING = Object.freeze(${pricingSource[1]}); ${calculatorSource[0].replace('export ', '')}`, context);
 
 assert.deepEqual(
-  JSON.parse(JSON.stringify(context.PRICING.staticPosts)),
+  JSON.parse(JSON.stringify(context.QUOTATION_PRICING.staticPosts)),
   { standardRate: 1000, bulkRate: 900, bulkRateStartsAt: 11, fullOrderBulkRateStartsAt: 20 }
 );
 
@@ -51,17 +52,16 @@ assert.equal(context.calculateStaticPostsPrice(20), 18000, '20 posts apply the b
 assert.ok(context.calculateStaticPostsPrice(20) < context.calculateStaticPostsPrice(19), 'The intentional 19 → 20 total reduction must remain');
 assert.equal(context.calculateStaticPostsPrice(10), 10000, '11 → 10 removes the additional post');
 assert.equal(context.calculateStaticPostsPrice(11), 10900, 'Posts-only package total');
-assert.equal(context.calculateStaticPostsPrice(11) + context.PRICING.video25, 12900, 'Posts plus professional video total');
-assert.equal(context.calculateStaticPostsPrice(11) + context.PRICING.managementFirstPlatform, 17900, 'Posts plus one-platform management total');
+assert.equal(context.calculateStaticPostsPrice(11) + context.QUOTATION_PRICING.video25, 12900, 'Posts plus professional video total');
+assert.equal(context.calculateStaticPostsPrice(11) + context.QUOTATION_PRICING.managementFirstPlatform, 17900, 'Posts plus one-platform management total');
 
-assert.match(calculatorSource[0], /if \(postCount <= standardPostLimit\) return postCount \* PRICING\.staticPosts\.standardRate;/);
-assert.match(calculatorSource[0], /if \(postCount < PRICING\.staticPosts\.fullOrderBulkRateStartsAt\)/);
-assert.match(calculatorSource[0], /return postCount \* PRICING\.staticPosts\.bulkRate;/);
-assert.match(quotationScript, /if \(postCount <= 10\) return postCount \* 1000;[\s\S]*if \(postCount < 20\) return 10 \* 1000 \+ \(postCount - 10\) \* 900;[\s\S]*return postCount \* 900;/, 'Printable quotation must validate all three pricing tiers');
+assert.match(calculatorSource[0], /if \(count <= standardLimit\) return count \* QUOTATION_PRICING\.staticPosts\.standardRate;/);
+assert.match(calculatorSource[0], /if \(count < QUOTATION_PRICING\.staticPosts\.fullOrderBulkRateStartsAt\)/);
+assert.match(calculatorSource[0], /return count \* QUOTATION_PRICING\.staticPosts\.bulkRate;/);
+assert.match(quotationScript, /quotation-schema\.js/, 'Printable quotation must use the shared pricing and schema module');
 assert.match(shareFunction, /staticPosts: Object\.freeze\(\{ standardRate: 1000, bulkRate: 900, bulkRateStartsAt: 11, fullOrderBulkRateStartsAt: 20 \}\)/, 'Server-side share validation must use the same thresholds and rates');
 assert.match(shareFunction, /if \(quantity < pricing\.staticPosts\.fullOrderBulkRateStartsAt\)[\s\S]*return quantity \* pricing\.staticPosts\.bulkRate;/, 'Server-side share validation must apply the full-order bulk tier');
-assert.match(script, /var postTotal = calculateStaticPostsPrice\(selection\.quantities\.posts\);/);
-assert.match(script, /return managementTotal \+ postTotal \+ selection\.quantities\.video25 \* PRICING\.video25 \+ selection\.quantities\.video50 \* PRICING\.video50 \+ selection\.quantities\.stories \* PRICING\.story \+ aiVideoTotal;/);
+assert.match(script, /return calculateQuotationTotal\(selection\);/);
 assert.match(script, /\[quantityInputs\.posts, quantityInputs\.aiVideo45, quantityInputs\.aiVideo90\]\.forEach\(addWholeQuantityInputGuards\);/);
 assert.match(html, /Posts 1–10 are Rs\. 1,000 each\. Posts 11–19 add Rs\. 900 each; at 20 or more, every post is Rs\. 900\./);
 

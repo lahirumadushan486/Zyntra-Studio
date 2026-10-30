@@ -71,7 +71,7 @@ assert.match(script, /window\.setTimeout\(resetWhatsAppButton, 1500\)/, 'The ope
 assert.match(script, /window\.addEventListener\('pageshow', resetWhatsAppButton\)/, 'The button must reset when the customer returns with Back');
 
 assert.doesNotMatch(script, /renderQuotationBlob|html2canvas/, 'WhatsApp must remain independent of the removed PNG renderer');
-assert.match(script, /window\.location\.assign\('quotation\.html'\)/, 'Quotation preview uses same-tab navigation');
+assert.match(script, /window\.location\.assign\('quotation\.html\?quote='/, 'Quotation preview uses reference-keyed same-tab navigation');
 
 assert.match(styles, /custom-package-builder__quotation-actions\{[^}]*grid-template-columns:repeat\(2,minmax\(0,1fr\)/);
 assert.match(styles, /@media\(max-width:700px\)\{[^}]*custom-package-builder__quotation-actions\{grid-template-columns:minmax\(0,1fr\)/);

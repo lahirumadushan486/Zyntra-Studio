@@ -5,6 +5,7 @@ const vm = require('node:vm');
 const builder = fs.readFileSync('js/custom-package-builder.js', 'utf8');
 const couponConfig = fs.readFileSync('js/coupon-config.js', 'utf8');
 const quotation = fs.readFileSync('assets/js/zyntra-quotation.js', 'utf8');
+const quotationSchema = fs.readFileSync('js/quotation-schema.js', 'utf8');
 const edge = fs.readFileSync('supabase/functions/share-package-quotation/index.ts', 'utf8');
 const html = fs.readFileSync('index.html', 'utf8');
 const quotationHtml = fs.readFileSync('quotation.html', 'utf8');
@@ -83,7 +84,8 @@ assert.match(whatsappMessage, /Coupon Discount: −Rs\. 2,750/);
 assert.match(whatsappMessage, /FINAL PACKAGE TOTAL\nRs\. 37,250/);
 assert.doesNotMatch(whatsappMessage, /ZSCNO2750/);
 assert.match(quotationHtml, /id="quotation-original-total"[\s\S]*id="quotation-coupon-discount"[\s\S]*id="quotation-total"/);
-assert.match(quotation, /snapshot\.total !== expectedOriginalTotal - \(snapshot\.coupon \? snapshot\.coupon\.amount : 0\)/);
+assert.match(quotationSchema, /JSON\.stringify\(snapshot\.totals\) !== JSON\.stringify\(expected\.totals\)/);
+assert.doesNotMatch(quotationSchema.slice(quotationSchema.indexOf('export function createQuotationSnapshot')), /coupon\.code/, 'Printable snapshots must not persist coupon codes');
 assert.match(edge, /const total = originalTotal - \(coupon \? coupon\.amount : 0\)/);
 assert.match(edge, /coupon && coupon\.amount >= originalTotal/);
 

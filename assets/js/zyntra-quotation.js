@@ -1,39 +1,41 @@
-import { COUPON_CONFIG } from '../../js/coupon-config.js';
+import {
+  LEGACY_QUOTATION_STORAGE_KEY,
+  normalizeAndValidateQuotationSnapshot,
+  quotationStorageKey,
+  readWindowNameEnvelope
+} from '../../js/quotation-schema.js';
 
 (function () {
   'use strict';
 
-  var STORAGE_KEY = 'zyntra.customPackageQuotation.v1';
-  var VERSION = 1;
-  var ALLOWED_SERVICE_IDS = ['posts', 'video25', 'video50', 'stories', 'aiVideo45', 'aiVideo90', 'management', 'youtube'];
-  var ALLOWED_PLATFORMS = ['Facebook', 'Instagram', 'TikTok', 'YouTube'];
-  var ALLOWED_EDITING_TYPES = ['basic', 'professional', 'advanced'];
-  var ALLOWED_ADDONS = ['thumbnail', 'subtitles', 'introOutro', 'motionGraphics'];
+  var STORAGE_KEY = LEGACY_QUOTATION_STORAGE_KEY;
   var documentElement = document.getElementById('quotation-document');
   var messageElement = document.getElementById('quotation-message');
   var messageText = document.getElementById('quotation-message-text');
   var printButton = document.getElementById('quotation-print');
+  var printReady = false;
 
-  function readSnapshot() {
+  function readStorageJson(storage, key) {
     try {
-      var raw = window.sessionStorage.getItem(STORAGE_KEY);
+      var raw = storage.getItem(key);
       return raw ? JSON.parse(raw) : null;
     } catch (error) {
       return null;
     }
   }
 
-  function isIsoDate(value) {
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(value || '')) return false;
-    var parts = value.split('-').map(Number);
-    var date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
-    return date.getUTCFullYear() === parts[0] && date.getUTCMonth() === parts[1] - 1 && date.getUTCDate() === parts[2];
-  }
-
-  function addCalendarDays(isoDate, days) {
-    var parts = isoDate.split('-').map(Number);
-    var date = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2] + days));
-    return date.getUTCFullYear() + '-' + String(date.getUTCMonth() + 1).padStart(2, '0') + '-' + String(date.getUTCDate()).padStart(2, '0');
+  function readSnapshot() {
+    var reference = new URLSearchParams(window.location.search).get('quote');
+    if (reference) {
+      var key = quotationStorageKey(reference);
+      return {
+        explicitlyRequested: true,
+        snapshot: normalizeAndValidateQuotationSnapshot(readStorageJson(window.sessionStorage, key)) ||
+          normalizeAndValidateQuotationSnapshot(readStorageJson(window.localStorage, key)) ||
+          readWindowNameEnvelope(window.name, reference)
+      };
+    }
+    return { explicitlyRequested: false, snapshot: normalizeAndValidateQuotationSnapshot(readStorageJson(window.sessionStorage, STORAGE_KEY)) };
   }
 
   function getColomboToday() {
@@ -41,93 +43,6 @@ import { COUPON_CONFIG } from '../../js/coupon-config.js';
     var values = {};
     parts.forEach(function (part) { if (part.type !== 'literal') values[part.type] = part.value; });
     return values.year + '-' + values.month + '-' + values.day;
-  }
-
-  function isSafeString(value, maximum) {
-    return typeof value === 'string' && value.length > 0 && value.length <= maximum;
-  }
-
-  function escapeRegExp(value) {
-    return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-  }
-
-  function validCoupon(coupon) {
-    if (coupon === null) return true;
-    if (!COUPON_CONFIG.enabled || !coupon || typeof coupon.code !== 'string' || !Number.isSafeInteger(coupon.amount)) return false;
-    var pattern = new RegExp('^' + escapeRegExp(COUPON_CONFIG.prefix.toUpperCase()) + '([1-9]\\d*)$');
-    var match = pattern.exec(coupon.code);
-    if (!match) return false;
-    var amount = Number(match[1]);
-    return coupon.code === coupon.code.toUpperCase() && amount === coupon.amount && amount >= COUPON_CONFIG.minimumDiscount && amount <= COUPON_CONFIG.maximumDiscount;
-  }
-
-  function validSelection(selection) {
-    if (!selection || !selection.quantities || !selection.youtube || !Array.isArray(selection.platforms)) return false;
-    var quantityKeys = ['posts', 'video25', 'video50', 'stories', 'aiVideo45', 'aiVideo90'];
-    var quantitiesValid = quantityKeys.every(function (key) {
-      return Number.isSafeInteger(selection.quantities[key]) && selection.quantities[key] >= 0 && selection.quantities[key] <= 999;
-    });
-    var platformsValid = selection.platforms.length <= ALLOWED_PLATFORMS.length && selection.platforms.every(function (platform, index) {
-      return ALLOWED_PLATFORMS.includes(platform) && selection.platforms.indexOf(platform) === index;
-    });
-    var youtube = selection.youtube;
-    var youtubeValid = typeof youtube.enabled === 'boolean' && Array.isArray(youtube.videos) && youtube.videos.length >= 1 && youtube.videos.length <= 20 &&
-      youtube.videos.every(function (video) { return video && Number.isInteger(video.durationMinutes) && video.durationMinutes >= 1 && video.durationMinutes <= 180; }) &&
-      (!youtube.enabled || ALLOWED_EDITING_TYPES.includes(youtube.editingType)) && Array.isArray(youtube.addOns) &&
-      youtube.addOns.every(function (addon) { return ALLOWED_ADDONS.includes(addon); });
-    return quantitiesValid && platformsValid && youtubeValid && validCoupon(selection.coupon) && typeof selection.management === 'boolean';
-  }
-
-  function calculateStaticPostsPrice(postCount) {
-    if (postCount <= 10) return postCount * 1000;
-    if (postCount < 20) return 10 * 1000 + (postCount - 10) * 900;
-    return postCount * 900;
-  }
-
-  function calculateExpectedTotal(selection) {
-    var postTotal = calculateStaticPostsPrice(selection.quantities.posts);
-    var managementTotal = selection.management && selection.platforms.length ? 7000 + Math.max(0, selection.platforms.length - 1) * 1000 : 0;
-    return managementTotal + postTotal + selection.quantities.video25 * 2000 +
-      selection.quantities.video50 * 3000 + selection.quantities.stories * 1400 +
-      selection.quantities.aiVideo45 * 3500 + selection.quantities.aiVideo90 * 5500;
-  }
-
-  function expectedServiceIds(selection) {
-    var ids = [];
-    if (selection.quantities.posts) ids.push('posts');
-    if (selection.quantities.video25) ids.push('video25');
-    if (selection.quantities.video50) ids.push('video50');
-    if (selection.quantities.stories) ids.push('stories');
-    if (selection.quantities.aiVideo45) ids.push('aiVideo45');
-    if (selection.quantities.aiVideo90) ids.push('aiVideo90');
-    if (selection.management && selection.platforms.length) ids.push('management');
-    if (selection.youtube.enabled) ids.push('youtube');
-    return ids;
-  }
-
-  function validateSnapshot(snapshot) {
-    if (!snapshot || snapshot.version !== VERSION || !isSafeString(snapshot.reference, 80)) return false;
-    if (!isIsoDate(snapshot.issueDate) || !isIsoDate(snapshot.expiryDate) || snapshot.expiryDate !== addCalendarDays(snapshot.issueDate, 28)) return false;
-    if (!validSelection(snapshot.selection) || !Array.isArray(snapshot.services) || snapshot.services.length < 1 || snapshot.services.length > 8) return false;
-    if (!Number.isSafeInteger(snapshot.originalTotal) || snapshot.originalTotal < 0 || snapshot.originalTotal > 1000000000) return false;
-    if (!Number.isSafeInteger(snapshot.total) || snapshot.total < 0 || snapshot.total > 1000000000 || !validCoupon(snapshot.coupon)) return false;
-    if (typeof snapshot.quoteOnly !== 'boolean' || typeof snapshot.monthly !== 'boolean' || typeof snapshot.hasQuoteOnlyService !== 'boolean') return false;
-    var expectedOriginalTotal = calculateExpectedTotal(snapshot.selection);
-    if (!snapshot.coupon && snapshot.total !== calculateExpectedTotal(snapshot.selection)) return false;
-    if (snapshot.originalTotal !== expectedOriginalTotal) return false;
-    if (JSON.stringify(snapshot.coupon) !== JSON.stringify(snapshot.selection.coupon)) return false;
-    if (snapshot.coupon && snapshot.coupon.amount >= expectedOriginalTotal) return false;
-    if (snapshot.total !== expectedOriginalTotal - (snapshot.coupon ? snapshot.coupon.amount : 0)) return false;
-    if (snapshot.quoteOnly !== (snapshot.selection.youtube.enabled && snapshot.originalTotal === 0)) return false;
-    if (snapshot.monthly !== Boolean(snapshot.selection.management && snapshot.selection.platforms.length)) return false;
-    if (snapshot.hasQuoteOnlyService !== snapshot.selection.youtube.enabled) return false;
-    var ids = [];
-    var servicesValid = snapshot.services.every(function (service) {
-      if (!service || !ALLOWED_SERVICE_IDS.includes(service.id) || ids.includes(service.id)) return false;
-      ids.push(service.id);
-      return isSafeString(service.service, 80) && isSafeString(service.details, 1200);
-    });
-    return servicesValid && ids.join('|') === expectedServiceIds(snapshot.selection).join('|');
   }
 
   function formatDate(isoDate) {
@@ -171,9 +86,9 @@ import { COUPON_CONFIG } from '../../js/coupon-config.js';
 
   function createQuotationDisplayTotals(snapshot) {
     return {
-      packageTotal: snapshot.originalTotal,
-      couponDiscount: snapshot.coupon ? snapshot.coupon.amount : 0,
-      finalPackageTotal: snapshot.total
+      packageTotal: snapshot.totals.original,
+      couponDiscount: snapshot.totals.discount,
+      finalPackageTotal: snapshot.totals.final
     };
   }
 
@@ -207,24 +122,28 @@ import { COUPON_CONFIG } from '../../js/coupon-config.js';
       document.getElementById('quotation-included-section').hidden = false;
     }
 
-    document.getElementById('quotation-total-label').textContent = snapshot.quoteOnly ? 'PACKAGE TOTAL' : (snapshot.coupon ? 'FINAL PACKAGE TOTAL' : (snapshot.monthly ? 'MONTHLY PACKAGE TOTAL' : 'PACKAGE TOTAL'));
+    var hasDiscount = snapshot.totals.discount > 0;
+    document.getElementById('quotation-total-label').textContent = snapshot.quoteOnly ? 'PACKAGE TOTAL' : (hasDiscount ? 'FINAL PACKAGE TOTAL' : (snapshot.monthly ? 'MONTHLY PACKAGE TOTAL' : 'PACKAGE TOTAL'));
     document.getElementById('quotation-total').textContent = snapshot.quoteOnly ? 'Custom quote required' : formatRupees(displayTotals.finalPackageTotal);
-    if (snapshot.coupon) {
+    if (hasDiscount) {
       document.getElementById('quotation-original-total').textContent = formatRupees(displayTotals.packageTotal);
       document.getElementById('quotation-coupon-label').textContent = 'COUPON DISCOUNT';
-      document.getElementById('quotation-coupon-discount').textContent = '−' + formatRupees(displayTotals.couponDiscount);
+      document.getElementById('quotation-coupon-discount').textContent = '\u2212' + formatRupees(displayTotals.couponDiscount);
       document.getElementById('quotation-original-row').hidden = false;
       document.getElementById('quotation-coupon-row').hidden = false;
     }
     document.getElementById('quotation-quote-only-notice').hidden = !snapshot.hasQuoteOnlyService;
-    document.getElementById('quotation-advertising-notice').textContent = snapshot.selection.management && snapshot.selection.platforms.length
+    document.getElementById('quotation-advertising-notice').textContent = snapshot.notes.adBoostingSupportIncluded
       ? 'Ad boosting support is included with your selected social media management package. Advertising spend/ad budget is not included and will be discussed separately.'
       : 'Advertising spend and ad boosting management are not included in this content package.';
 
     if (getColomboToday() > snapshot.expiryDate) document.getElementById('quotation-expired').hidden = false;
     messageElement.hidden = true;
     documentElement.hidden = false;
-    printButton.disabled = false;
+    waitForPrintAssets().then(function () {
+      printReady = true;
+      printButton.disabled = false;
+    });
   }
 
   function waitForPrintAssets() {
@@ -238,13 +157,15 @@ import { COUPON_CONFIG } from '../../js/coupon-config.js';
   }
 
   printButton.addEventListener('click', function () {
-    if (printButton.disabled) return;
+    if (!printReady || printButton.disabled) return;
     printButton.disabled = true;
-    waitForPrintAssets().then(function () { window.print(); }).finally(function () { printButton.disabled = false; });
+    window.print();
+    printButton.disabled = false;
   });
 
-  var snapshot = readSnapshot();
-  if (!snapshot) showError('No generated quotation was found. Return to the Package Builder and click Create My Package first.');
-  else if (!validateSnapshot(snapshot)) showError('The saved quotation is incomplete or invalid. Return to the Package Builder and generate it again.');
-  else renderSnapshot(snapshot);
+  var result = readSnapshot();
+  if (!result.snapshot) showError(result.explicitlyRequested
+    ? 'This quotation could not be found or is incomplete. Return to the Package Builder and generate it again.'
+    : 'No generated quotation was found. Return to the Package Builder and click Create My Package first.');
+  else renderSnapshot(result.snapshot);
 }());
